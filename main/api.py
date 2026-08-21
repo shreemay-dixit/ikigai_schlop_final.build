@@ -13,11 +13,12 @@ from typing import Optional, Dict, Any
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from queuing_theory import compute_queuing_baseline, compute_positional_wait, compute_erlang_c_wait_scalar
 from rate_tracker import tracker
+from intent_extractor import extract_queue_intent, QueueIntent
 
 app = FastAPI(
-    title="Hybrid Queue Wait Predictor API",
-    description="Deterministic M/M/c Erlang-C + Positional Queuing Baseline + Random Forest Residual Model",
-    version="2.0.0"
+    title="Hybrid Queue Wait Predictor & Intake API",
+    description="Deterministic M/M/c Erlang-C + Positional Queuing Baseline + Random Forest Residual Model + Gemini Intent Extraction",
+    version="2.1.0"
 )
 
 # Enable CORS for frontend web integration
@@ -46,6 +47,15 @@ def get_model():
 # Initial load
 get_model()
 
+class NaturalIntakeRequest(BaseModel):
+    user_text: str = Field(..., description="Unstructured natural language input from customer")
+    tenant_persona: str = Field("general service desk", description="Business context (e.g., 'bank', 'hospital', 'DMV')")
+    queue_length_ahead: int = Field(..., ge=0, description="Active waiting tickets ahead in queue")
+    active_counters: int = Field(..., ge=1, description="Number of operational service desks")
+    hour_of_day: Optional[int] = Field(None, ge=0, le=23, description="Hour (0-23)")
+    day_of_week: Optional[int] = Field(None, ge=0, le=6, description="Day of week (0=Mon ... 6=Sun)")
+    rolling_velocity_mins: Optional[float] = Field(None, gt=0.0, description="Optional override for rolling S_bar service duration")
+
 class IntakeRequest(BaseModel):
     service_type: int = Field(0, ge=0, le=2, description="Service tier (0=Quick, 1=Standard, 2=Complex)")
     priority_score: int = Field(1, ge=1, le=5, description="Priority scale 1 (normal) to 5 (VIP/Urgent)")
@@ -70,6 +80,37 @@ def health_check():
         "model_loaded": rf is not None,
         "metrics": tracker.get_metrics_snapshot()
     }
+
+@app.post("/intake/natural")
+def intake_natural_ticket(req: NaturalIntakeRequest) -> Dict[str, Any]:
+    """
+    End-to-End LLM Intake:
+    1. Extracts structured demographic, urgency, and operational features using Gemini Structured Outputs.
+    2. Hands extracted features seamlessly to the queuing baseline + Random Forest prediction pipeline.
+    """
+    extracted_features = extract_queue_intent(
+        user_text=req.user_text,
+        tenant_persona=req.tenant_persona
+    )
+
+    structured_req = IntakeRequest(
+        service_type=extracted_features["service_type"],
+        priority_score=extracted_features["priority_score"],
+        is_walk_in=extracted_features["is_walk_in"],
+        party_size=extracted_features["party_size"],
+        age_bracket=extracted_features["age_bracket"],
+        queue_length_ahead=req.queue_length_ahead,
+        active_counters=req.active_counters,
+        hour_of_day=req.hour_of_day,
+        day_of_week=req.day_of_week,
+        rolling_velocity_mins=req.rolling_velocity_mins
+    )
+
+    result = intake_ticket(structured_req)
+    result["extracted_features"] = extracted_features
+    result["input_text"] = req.user_text
+    result["tenant_persona"] = req.tenant_persona
+    return result
 
 @app.post("/intake")
 def intake_ticket(req: IntakeRequest) -> Dict[str, Any]:
