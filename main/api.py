@@ -3,11 +3,13 @@ import sys
 import joblib
 import pandas as pd
 import numpy as np
+from datetime import datetime
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from typing import Optional, Dict, Any
 
-# Add current directory to path
+# Ensure module path resolution
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from queuing_theory import compute_queuing_baseline, compute_positional_wait, compute_erlang_c_wait_scalar
 from rate_tracker import tracker
@@ -18,32 +20,43 @@ app = FastAPI(
     version="2.0.0"
 )
 
-# Load model if available
+# Enable CORS for frontend web integration
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Model path resolution
 MODEL_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "wait_predictor_cv.pkl")
 model = None
 
-def load_rf_model():
+def get_model():
     global model
-    if os.path.exists(MODEL_PATH):
+    if model is None and os.path.exists(MODEL_PATH):
         try:
             model = joblib.load(MODEL_PATH)
         except Exception as e:
             print(f"Warning: Could not load model from {MODEL_PATH}: {e}")
             model = None
+    return model
 
-load_rf_model()
+# Initial load
+get_model()
 
 class IntakeRequest(BaseModel):
-    service_type: int = Field(0, description="Service tier (0=Quick, 1=Standard, 2=Complex)")
+    service_type: int = Field(0, ge=0, le=2, description="Service tier (0=Quick, 1=Standard, 2=Complex)")
     priority_score: int = Field(1, ge=1, le=5, description="Priority scale 1 (normal) to 5 (VIP/Urgent)")
-    is_walk_in: int = Field(1, description="1 if unannounced walk-in, 0 if scheduled")
+    is_walk_in: int = Field(1, ge=0, le=1, description="1 if unannounced walk-in, 0 if scheduled")
     party_size: int = Field(1, ge=1, le=10, description="Number of people in group")
-    age_bracket: int = Field(1, description="0=Youth, 1=Adult, 2=Senior")
+    age_bracket: int = Field(1, ge=0, le=2, description="0=Youth, 1=Adult, 2=Senior")
     queue_length_ahead: int = Field(..., ge=0, description="Active waiting tickets ahead in queue")
     active_counters: int = Field(..., ge=1, description="Number of operational service desks")
     hour_of_day: Optional[int] = Field(None, ge=0, le=23, description="Hour (0-23)")
     day_of_week: Optional[int] = Field(None, ge=0, le=6, description="Day of week (0=Mon ... 6=Sun)")
-    rolling_velocity_mins: Optional[float] = Field(None, description="Optional override for rolling S_bar service duration")
+    rolling_velocity_mins: Optional[float] = Field(None, gt=0.0, description="Optional override for rolling S_bar service duration")
 
 class CompletionRequest(BaseModel):
     duration_mins: float = Field(..., gt=0.0, description="Actual duration of completed service in minutes")
@@ -51,9 +64,10 @@ class CompletionRequest(BaseModel):
 
 @app.get("/")
 def health_check():
+    rf = get_model()
     return {
         "status": "online",
-        "model_loaded": model is not None,
+        "model_loaded": rf is not None,
         "metrics": tracker.get_metrics_snapshot()
     }
 
@@ -75,7 +89,6 @@ def intake_ticket(req: IntakeRequest) -> Dict[str, Any]:
     mu = 1.0 / max(0.5, s_bar)
     
     # Default temporal features if not provided
-    from datetime import datetime
     now = datetime.now()
     hour = req.hour_of_day if req.hour_of_day is not None else now.hour
     dow = req.day_of_week if req.day_of_week is not None else now.weekday()
@@ -90,15 +103,26 @@ def intake_ticket(req: IntakeRequest) -> Dict[str, Any]:
         blend_alpha=0.70
     )
     
-    baseline_mins = queuing_metrics['queuing_theory_baseline']
+    if isinstance(queuing_metrics, dict):
+        baseline_mins = queuing_metrics['queuing_theory_baseline']
+        pos_wait = queuing_metrics['positional_wait_mins']
+        erlang_wait = queuing_metrics['erlang_c_wait_mins']
+        rho = queuing_metrics['system_utilization_rho']
+        pc = queuing_metrics['probability_of_wait_pc']
+    else:
+        baseline_mins = float(queuing_metrics)
+        pos_wait = baseline_mins
+        erlang_wait = 0.0
+        rho = round(lam / (req.active_counters * mu), 3)
+        pc = 0.0
     
     # 4. Hybrid ML Prediction Layer with Fallback
     ml_prediction_mins = None
     rf_used = False
+    rf = get_model()
     
-    if model is not None:
+    if rf is not None:
         try:
-            # Prepare feature vector matching training feature columns
             feature_dict = {
                 'service_type': [req.service_type],
                 'priority_score': [req.priority_score],
@@ -114,12 +138,11 @@ def intake_ticket(req: IntakeRequest) -> Dict[str, Any]:
             }
             features_df = pd.DataFrame(feature_dict)
             
-            # Check model expected features
-            if hasattr(model, 'feature_names_in_'):
-                cols_to_use = [c for c in model.feature_names_in_ if c in features_df.columns]
+            if hasattr(rf, 'feature_names_in_'):
+                cols_to_use = [c for c in rf.feature_names_in_ if c in features_df.columns]
                 features_df = features_df[cols_to_use]
             
-            pred = float(model.predict(features_df)[0])
+            pred = float(rf.predict(features_df)[0])
             ml_prediction_mins = max(2.0, round(pred, 1))
             rf_used = True
         except Exception as e:
@@ -129,8 +152,6 @@ def intake_ticket(req: IntakeRequest) -> Dict[str, Any]:
         ml_prediction_mins = baseline_mins
         
     final_estimated_wait = ml_prediction_mins if rf_used else baseline_mins
-    
-    # XAI Residual calculation
     learned_residual = round(final_estimated_wait - baseline_mins, 2)
     
     return {
@@ -141,11 +162,11 @@ def intake_ticket(req: IntakeRequest) -> Dict[str, Any]:
         },
         "explainable_ai_breakdown": {
             "deterministic_queuing_baseline_mins": baseline_mins,
-            "discrete_positional_wait_mins": queuing_metrics['positional_wait_mins'],
-            "erlang_c_steady_state_wait_mins": queuing_metrics['erlang_c_wait_mins'],
+            "discrete_positional_wait_mins": pos_wait,
+            "erlang_c_steady_state_wait_mins": erlang_wait,
             "learned_human_variance_residual_mins": learned_residual,
-            "system_utilization_rho": queuing_metrics['system_utilization_rho'],
-            "probability_of_wait_erlang_c": queuing_metrics['probability_of_wait_pc'],
+            "system_utilization_rho": rho,
+            "probability_of_wait_erlang_c": pc,
             "ml_model_active": rf_used
         },
         "dynamic_rates": {
