@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hybrid Queue Prediction & Triage Engine</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="brand">
+                <div class="brand-badge">XAI + M/M/c</div>
+                <h1>Smart Queue Intelligence</h1>
+                <p class="subtitle">Hybrid Erlang-C Queuing Baseline &bull; Gemini Triage &bull; Residual ML Predictor</p>
+            </div>
+            <div class="system-status-card" id="systemStatusCard">
+                <div class="status-indicator online"></div>
+                <div>
+                    <span class="status-title" id="statusTitle">System Online</span>
+                    <span class="status-detail" id="statusDetail">API: Connected &bull; ML: Active</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Layout -->
+        <main class="dashboard-grid">
+            <!-- Left Column: Intake Controls -->
+            <section class="card intake-panel">
+                <div class="card-header">
+                    <h2>Customer Intake & Triage</h2>
+                    <div class="tab-toggle">
+                        <button class="tab-btn active" id="btnTabNatural" onclick="switchTab('natural')">Natural LLM</button>
+                        <button class="tab-btn" id="btnTabStructured" onclick="switchTab('structured')">Manual Inputs</button>
+                    </div>
+                </div>
+
+                <!-- Natural Language LLM Intake Tab -->
+                <div id="tabNatural" class="tab-content active">
+                    <div class="form-group">
+                        <label for="tenantPersona">Business Persona / Tenant Context</label>
+                        <select id="tenantPersona" class="form-control">
+                            <option value="hospital emergency department">Hospital / Emergency Dept</option>
+                            <option value="commercial banking branch">Bank Branch</option>
+                            <option value="DMV vehicle licensing center" selected>DMV / Licensing Center</option>
+                            <option value="telecom customer support centre">Telecom Support Store</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="naturalUserText">Customer Raw Input / Description</label>
+                        <textarea id="naturalUserText" class="form-control" rows="4" placeholder="e.g. 'I brought my elderly grandmother for urgent license renewal before travel, line looks long...'"></textarea>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group col">
+                            <label for="natQueueAhead">Tickets Ahead ($N$)</label>
+                            <input type="number" id="natQueueAhead" class="form-control" value="12" min="0" max="100">
+                        </div>
+                        <div class="form-group col">
+                            <label for="natActiveCounters">Active Desks ($c$)</label>
+                            <input type="number" id="natActiveCounters" class="form-control" value="3" min="1" max="20">
+                        </div>
+                    </div>
+
+                    <button class="btn btn-primary" id="btnSubmitNatural" onclick="submitNaturalIntake()">
+                        <span class="btn-text">Intake & Predict Wait Time</span>
+                        <div class="spinner" style="display:none;"></div>
+                    </button>
+                </div>
+
+                <!-- Manual Structured Tab -->
+                <div id="tabStructured" class="tab-content">
+                    <div class="form-row">
+                        <div class="form-group col">
+                            <label for="serviceType">Service Tier</label>
+                            <select id="serviceType" class="form-control">
+                                <option value="0">0 - Quick / Routine (~6 min)</option>
+                                <option value="1" selected>1 - Standard Consultation (~14 min)</option>
+                                <option value="2">2 - Complex Procedure (~28 min)</option>
+                            </select>
+                        </div>
+                        <div class="form-group col">
+                            <label for="priorityScore">Priority Urgency (1-5)</label>
+                            <select id="priorityScore" class="form-control">
+                                <option value="1">1 - Lowest / Routine</option>
+                                <option value="2" selected>2 - Standard</option>
+                                <option value="3">3 - Moderate</option>
+                                <option value="4">4 - High / Urgent</option>
+                                <option value="5">5 - Critical / VIP</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group col">
+                            <label for="isWalkIn">Arrival Type</label>
+                            <select id="isWalkIn" class="form-control">
+                                <option value="1" selected>Walk-in (Unannounced)</option>
+                                <option value="0">Pre-Booked Appointment</option>
+                            </select>
+                        </div>
+                        <div class="form-group col">
+                            <label for="partySize">Party Size</label>
+                            <input type="number" id="partySize" class="form-control" value="1" min="1" max="10">
+                        </div>
+                        <div class="form-group col">
+                            <label for="ageBracket">Age Bracket</label>
+                            <select id="ageBracket" class="form-control">
+                                <option value="0">Minor (&lt;18)</option>
+                                <option value="1" selected>Adult (18-60)</option>
+                                <option value="2">Senior (60+)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group col">
+                            <label for="structQueueAhead">Queue Ahead ($N$)</label>
+                            <input type="number" id="structQueueAhead" class="form-control" value="12" min="0">
+                        </div>
+                        <div class="form-group col">
+                            <label for="structActiveCounters">Active Counters ($c$)</label>
+                            <input type="number" id="structActiveCounters" class="form-control" value="3" min="1">
+                        </div>
+                    </div>
+
+                    <button class="btn btn-primary" id="btnSubmitStructured" onclick="submitStructuredIntake()">
+                        <span class="btn-text">Compute Hybrid Estimate</span>
+                    </button>
+                </div>
+            </section>
+
+            <!-- Right Column: Results & XAI Decomposition -->
+            <section class="results-column">
+                <!-- Big Number Result Card -->
+                <div class="card result-hero-card">
+                    <div class="result-header">
+                        <span class="badge">Hybrid Estimation</span>
+                        <span class="timestamp" id="lastUpdated">Ready</span>
+                    </div>
+                    <div class="result-main">
+                        <div class="wait-stat">
+                            <span class="wait-number" id="estimatedWaitVal">--</span>
+                            <span class="wait-unit">mins</span>
+                        </div>
+                        <div class="confidence-badge" id="confidenceRange">
+                            Confidence: &plusmn; 2.5 mins
+                        </div>
+                    </div>
+                    <div class="result-footer">
+                        <div class="stat-pill">
+                            <span class="stat-label">Deterministic Baseline</span>
+                            <span class="stat-value" id="baselineStat">-- mins</span>
+                        </div>
+                        <div class="stat-pill">
+                            <span class="stat-label">ML Learned Residual</span>
+                            <span class="stat-value" id="residualStat">-- mins</span>
+                        </div>
+                        <div class="stat-pill">
+                            <span class="stat-label">System Utilization (&rho;)</span>
+                            <span class="stat-value" id="utilizationStat">--</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- XAI Transparent Decomposition Card -->
+                <div class="card xai-card">
+                    <h2>Explainable AI (XAI) Decomposition</h2>
+                    <div class="math-breakdown">
+                        <div class="math-step">
+                            <div class="math-title">1. Discrete Positional Model ($W_{\text{pos}}$)</div>
+                            <div class="math-formula">$$\left(\frac{N_{\text{ahead}}}{c}\right) \times \bar{S}_{\text{rolling}} \times K_{\text{priority}}$$</div>
+                            <div class="math-result" id="posWaitVal">-- mins</div>
+                        </div>
+
+                        <div class="math-step">
+                            <div class="math-title">2. Erlang-C Congestion Model ($W_q$)</div>
+                            <div class="math-formula">$$\frac{P_C}{c\mu - \lambda}$$</div>
+                            <div class="math-result" id="erlangWaitVal">-- mins</div>
+                        </div>
+
+                        <div class="math-step highlight">
+                            <div class="math-title">3. Random Forest Residual Layer (&Delta;)</div>
+                            <div class="math-formula">$$\text{Human Variances} + \text{Rush Dynamics}$$</div>
+                            <div class="math-result" id="rfResidualVal">-- mins</div>
+                        </div>
+                    </div>
+
+                    <!-- Extracted Gemini Features (Only when natural intake used) -->
+                    <div id="geminiExtractionCard" class="extraction-card" style="display:none;">
+                        <h3>Gemini Structured Output Features</h3>
+                        <div class="features-chip-grid" id="featuresChips"></div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
