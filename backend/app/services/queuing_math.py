@@ -101,3 +101,24 @@ def compute_queuing_baseline(
         'system_utilization_rho': round(float(erlang_res['rho']), 3),
         'probability_of_wait_pc': round(float(erlang_res['PC']), 3)
     }
+
+class QueuingTheoryEngine:
+    """
+    QueuingTheoryEngine class exposing calculate_baseline for unified queuing theory calculations.
+    """
+    @staticmethod
+    def calculate_baseline(
+        live_queue_count: int,
+        active_counters: int,
+        base_service_time_mins: float,
+        priority_score: int = 1,
+        arrival_rate: Optional[float] = None
+    ) -> float:
+        res = compute_queuing_baseline(
+            queue_length_ahead=live_queue_count,
+            active_counters=active_counters,
+            rolling_velocity_mins=base_service_time_mins,
+            priority_score=priority_score,
+            arrival_rate=arrival_rate
+        )
+        return res['queuing_theory_baseline']
