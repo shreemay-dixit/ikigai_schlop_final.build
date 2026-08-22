@@ -59,6 +59,17 @@ class IntakeResponse(BaseModel):
     extracted_features: Optional[Dict[str, Any]] = None
     created_at: datetime
 
+class CounterUpdateRequest(BaseModel):
+    active_counters: int = Field(..., ge=1, description="Number of active service counters (minimum 1)")
+
+class TenantResponse(BaseModel):
+    business_id: str
+    industry: Optional[str] = "General Service"
+    ai_persona: Optional[str] = None
+    active_counters: int
+    base_service_time_mins: float
+    created_at: Optional[datetime] = None
+
 class StatusUpdateRequest(BaseModel):
     status: str = Field(..., description="Target status: 'in_progress', 'completed', 'cancelled', 'no_show'")
     counter_id: Optional[str] = Field(None, description="Optional servicing counter identifier")
@@ -94,16 +105,14 @@ class HealthCheckResponse(BaseModel):
 
 
 # =============================================================================
-# Step 3: Implement the Master Intake Endpoint (POST /api/intake)
+# Endpoint 1: Intake & Triage Pipeline (POST /api/intake)
 # =============================================================================
 @app.post("/api/intake", response_model=IntakeResponse)
 def intake_customer(payload: IntakeRequest, background_tasks: BackgroundTasks, request: Request) -> IntakeResponse:
     now = datetime.now()
     velocity_tracker.record_arrival(payload.business_id)
 
-    # -------------------------------------------------------------------------
     # Phase 1: AI Intent & Tenant Lookup
-    # -------------------------------------------------------------------------
     tenant_data = None
     tenant_id = None
 
@@ -146,9 +155,7 @@ def intake_customer(payload: IntakeRequest, background_tasks: BackgroundTasks, r
 
     priority_score = extracted_features.get("priority_score", 1)
 
-    # -------------------------------------------------------------------------
     # Phase 2: Live State
-    # -------------------------------------------------------------------------
     live_queue_count = 0
     if supabase:
         try:
@@ -165,9 +172,7 @@ def intake_customer(payload: IntakeRequest, background_tasks: BackgroundTasks, r
     else:
         live_queue_count = len([e for e in in_memory_queue.values() if e.get("status") == "waiting" and (e.get("tenant_id") == tenant_id or e.get("business_id") == payload.business_id)])
 
-    # -------------------------------------------------------------------------
     # Phase 3: Queuing Baseline
-    # -------------------------------------------------------------------------
     rolling_velocity = velocity_tracker.get_rolling_velocity(payload.business_id, default_val=base_service_time)
     lam = velocity_tracker.get_arrival_rate(payload.business_id)
 
@@ -182,9 +187,7 @@ def intake_customer(payload: IntakeRequest, background_tasks: BackgroundTasks, r
     except Exception:
         queuing_baseline_mins = max(2.0, round((live_queue_count / max(1, active_counters)) * rolling_velocity, 1))
 
-    # -------------------------------------------------------------------------
     # Phase 4: ML Inference & Tree Variance Bounds
-    # -------------------------------------------------------------------------
     ml_features = {
         'service_type': extracted_features.get('service_type', 1),
         'priority_score': priority_score,
@@ -204,9 +207,7 @@ def intake_customer(payload: IntakeRequest, background_tasks: BackgroundTasks, r
     predicted_exact = variance_res["predicted_exact"]
     display_range = variance_res["display_range"]
 
-    # -------------------------------------------------------------------------
     # Phase 5: Database Persistence
-    # -------------------------------------------------------------------------
     ticket_id = str(uuid.uuid4())
     ticket_num = f"T-{now.strftime('%H%M%S')}-{live_queue_count + 1:02d}"
 
@@ -227,7 +228,6 @@ def intake_customer(payload: IntakeRequest, background_tasks: BackgroundTasks, r
                 inserted_row = insert_res.data[0]
                 ticket_id = str(inserted_row.get("id", ticket_id))
         except Exception as db_err:
-            # Fallback to local memory dictionary so request never fails
             in_memory_queue[ticket_id] = {
                 "id": ticket_id,
                 **insert_payload,
@@ -242,12 +242,8 @@ def intake_customer(payload: IntakeRequest, background_tasks: BackgroundTasks, r
             "created_at": now
         }
 
-    # Offload background rolling rate recalculation
-    background_tasks.add_task(recalculate_rolling_velocity, payload.business_id)
+    background_tasks.add_task(recalculate_rolling_velocity, payload.business_id, supabase)
 
-    # -------------------------------------------------------------------------
-    # Phase 6: Response
-    # -------------------------------------------------------------------------
     return IntakeResponse(
         ticket_id=ticket_id,
         ticket_number=ticket_num,
@@ -261,7 +257,53 @@ def intake_customer(payload: IntakeRequest, background_tasks: BackgroundTasks, r
 
 
 # =============================================================================
-# Endpoint 2: Ticket Status & Staff Advance (PATCH /api/queue/{ticket_id}/status)
+# Task 1: Staff Counter Control Endpoint (PATCH /api/tenants/{business_id}/counters)
+# =============================================================================
+@app.patch("/api/tenants/{business_id}/counters", response_model=TenantResponse)
+def update_tenant_counters(business_id: str, payload: CounterUpdateRequest) -> TenantResponse:
+    """
+    Dynamically adjusts the number of active service counters for a business.
+    """
+    updated_record = None
+    if supabase:
+        try:
+            res = supabase.table("tenants") \
+                .update({"active_counters": payload.active_counters}) \
+                .eq("business_id", business_id) \
+                .execute()
+            if res.data and len(res.data) > 0:
+                updated_record = res.data[0]
+        except Exception as e:
+            # Fallback to updating in-memory store
+            pass
+
+    if not updated_record:
+        if business_id not in in_memory_tenants:
+            in_memory_tenants[business_id] = {
+                "id": str(uuid.uuid4()),
+                "business_id": business_id,
+                "industry": "General Service",
+                "ai_persona": "customer service intake desk",
+                "active_counters": payload.active_counters,
+                "base_service_time_mins": settings.DEFAULT_SERVICE_TIME_MIN,
+                "created_at": datetime.now()
+            }
+        else:
+            in_memory_tenants[business_id]["active_counters"] = payload.active_counters
+        updated_record = in_memory_tenants[business_id]
+
+    return TenantResponse(
+        business_id=updated_record.get("business_id", business_id),
+        industry=updated_record.get("industry", "General Service"),
+        ai_persona=updated_record.get("ai_persona"),
+        active_counters=updated_record.get("active_counters", payload.active_counters),
+        base_service_time_mins=float(updated_record.get("base_service_time_mins", settings.DEFAULT_SERVICE_TIME_MIN)),
+        created_at=datetime.fromisoformat(str(updated_record["created_at"]).replace("Z", "+00:00")) if updated_record.get("created_at") and isinstance(updated_record.get("created_at"), str) else updated_record.get("created_at", datetime.now())
+    )
+
+
+# =============================================================================
+# Task 2: Ticket Status Update & Velocity Worker (PATCH /api/queue/{ticket_id}/status)
 # =============================================================================
 @app.patch("/api/queue/{ticket_id}/status", response_model=QueueEntrySchema)
 def update_ticket_status(
@@ -291,11 +333,22 @@ def update_ticket_status(
                 updated_row = update_res.data[0]
                 business_id = updated_row.get("business_id", "default")
             else:
-                raise HTTPException(status_code=404, detail=f"Ticket '{ticket_id}' not found.")
+                # Check fallback
+                if ticket_id in in_memory_queue:
+                    in_memory_queue[ticket_id].update(update_data)
+                    updated_row = in_memory_queue[ticket_id]
+                    business_id = updated_row.get("business_id", "default")
+                else:
+                    raise HTTPException(status_code=404, detail=f"Ticket '{ticket_id}' not found.")
         except HTTPException:
             raise
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Supabase update error: {str(e)}")
+            if ticket_id in in_memory_queue:
+                in_memory_queue[ticket_id].update(update_data)
+                updated_row = in_memory_queue[ticket_id]
+                business_id = updated_row.get("business_id", "default")
+            else:
+                raise HTTPException(status_code=500, detail=f"Supabase update error: {str(e)}")
     else:
         if ticket_id not in in_memory_queue:
             raise HTTPException(status_code=404, detail=f"Ticket '{ticket_id}' not found.")
@@ -322,7 +375,70 @@ def update_ticket_status(
 
 
 # =============================================================================
-# Endpoint 3: Active Queue Snapshot (GET /api/queue/{business_id})
+# Task 3: The "Call Next" Priority Sorting Endpoint (GET /api/queue/{business_id}/next)
+# =============================================================================
+@app.get("/api/queue/{business_id}/next", response_model=QueueEntrySchema)
+def get_next_ticket(business_id: str):
+    """
+    Retrieves the next optimal ticket to serve:
+    Sorted primarily by priority_score DESC, then by created_at ASC.
+    """
+    next_ticket = None
+
+    if supabase:
+        try:
+            # Query Supabase: status = 'waiting' AND (tenant_id = business_id OR business_id = business_id)
+            res = supabase.table("queue_entries") \
+                .select("*") \
+                .or_(f"tenant_id.eq.{business_id},business_id.eq.{business_id}") \
+                .eq("status", "waiting") \
+                .order("priority_score", desc=True) \
+                .order("created_at", desc=False) \
+                .limit(1) \
+                .execute()
+
+            if res.data and len(res.data) > 0:
+                next_ticket = res.data[0]
+        except Exception:
+            next_ticket = None
+
+    # In-memory fallback sorting if DB was offline or empty
+    if not next_ticket:
+        waiting_entries = [
+            e for e in in_memory_queue.values()
+            if (e.get("business_id") == business_id or e.get("tenant_id") == business_id) and e.get("status") == "waiting"
+        ]
+        if waiting_entries:
+            # Sort by priority_score DESC, then created_at ASC
+            waiting_entries.sort(
+                key=lambda x: (
+                    -int(x.get("priority_score", 1)),
+                    x.get("created_at").timestamp() if isinstance(x.get("created_at"), datetime) else 0.0
+                )
+            )
+            next_ticket = waiting_entries[0]
+
+    if not next_ticket:
+        raise HTTPException(status_code=404, detail=f"Queue is empty for business '{business_id}'.")
+
+    now = datetime.now()
+    return QueueEntrySchema(
+        id=str(next_ticket["id"]),
+        business_id=next_ticket.get("business_id", business_id),
+        ticket_number=next_ticket.get("ticket_number", ""),
+        phone_number=next_ticket.get("phone_number"),
+        priority_score=next_ticket.get("priority_score", 1),
+        predicted_wait_mins=next_ticket.get("predicted_wait_mins", 2.0),
+        display_range=next_ticket.get("display_range", "Under 5 mins"),
+        status=next_ticket.get("status", "waiting"),
+        served_at=datetime.fromisoformat(next_ticket["served_at"].replace("Z", "+00:00")) if isinstance(next_ticket.get("served_at"), str) else next_ticket.get("served_at"),
+        completed_at=datetime.fromisoformat(next_ticket["completed_at"].replace("Z", "+00:00")) if isinstance(next_ticket.get("completed_at"), str) else next_ticket.get("completed_at"),
+        created_at=datetime.fromisoformat(next_ticket["created_at"].replace("Z", "+00:00")) if isinstance(next_ticket.get("created_at"), str) else next_ticket.get("created_at", now)
+    )
+
+
+# =============================================================================
+# Endpoint: Active Queue Snapshot (GET /api/queue/{business_id})
 # =============================================================================
 @app.get("/api/queue/{business_id}", response_model=QueueSnapshotResponse)
 def get_queue_snapshot(business_id: str):
@@ -381,7 +497,7 @@ def get_queue_snapshot(business_id: str):
 
 
 # =============================================================================
-# Endpoint 4: System Health & Fallback Probe (GET /api/health)
+# Endpoint: System Health & Fallback Probe (GET /api/health)
 # =============================================================================
 @app.get("/api/health", response_model=HealthCheckResponse)
 def health_check(request: Request):
