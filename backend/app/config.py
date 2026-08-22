@@ -14,8 +14,9 @@ class Settings(BaseSettings):
     SUPABASE_KEY: str = Field(default="placeholder_key")
     SUPABASE_SERVICE_ROLE_KEY: str = Field(default="")
     
-    # Gemini API config
+    # LLM API configs
     GEMINI_API_KEY: str = Field(default="")
+    GROQ_API_KEY: str = Field(default="")
     
     # ML model path
     ML_MODEL_PATH: str = Field(default="models/wait_predictor_cv.pkl")

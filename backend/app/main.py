@@ -15,7 +15,7 @@ from app.schemas.queue import (
     QueueSnapshotResponse,
     HealthCheckResponse
 )
-from app.services.ai_engine import parse_user_intent, get_genai_client
+from app.services.ai_engine import parse_user_intent, get_gemini_client, get_groq_client
 from app.services.queuing_math import compute_queuing_baseline
 from app.services.ml_predictor import ml_predictor
 from app.workers.velocity_worker import velocity_tracker, recalculate_rolling_velocity
@@ -307,8 +307,8 @@ async def health_check():
         except Exception:
             db_connected = False
 
-    gemini_client = get_genai_client()
-    gemini_ready = gemini_client is not None
+    gemini_ready = get_gemini_client() is not None
+    groq_ready = get_groq_client() is not None
 
     return HealthCheckResponse(
         status="ok",
