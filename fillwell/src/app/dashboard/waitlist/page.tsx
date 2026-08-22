@@ -134,15 +134,15 @@ export default function WaitlistPage() {
           <table className="w-full text-sm">
             <thead className="border-b border-slate-200 bg-slate-50/60 text-slate-500">
               {table.getHeaderGroups().map((hg) => (
-                <tr key={hg.id}>{hg.headers.map((h) => <th key={h.id} className="px-4 py-3 text-left font-semibold">{h.isPlaceholder ? null : flexRender(h.column.columnDef.header, h.getContext())}</th>)}</tr>
+                <tr key={hg.id}>{hg.headers.map((h) => <th key={h.id} className="px-4 py-2 text-left text-xs font-bold uppercase tracking-wider">{h.isPlaceholder ? null : flexRender(h.column.columnDef.header, h.getContext())}</th>)}</tr>
               ))}
             </thead>
             <tbody className="divide-y divide-slate-100">
               {loading ? Array.from({ length: 5 }).map((_, i) => (
-                <tr key={i}>{columns.map((_, j) => <td key={j} className="px-4 py-3"><div className="h-4 w-3/4 animate-pulse rounded bg-slate-100" /></td>)}</tr>
+                <tr key={i}>{columns.map((_, j) => <td key={j} className="px-4 py-1.5"><div className="h-4 w-3/4 animate-pulse rounded bg-slate-100" /></td>)}</tr>
               )) : table.getRowModel().rows.length ? table.getRowModel().rows.map((row) => (
-                <tr key={row.id} className={`transition-colors ${row.original.is_active ? "hover:bg-slate-50/50" : "opacity-50"}`}>
-                  {row.getVisibleCells().map((cell) => <td key={cell.id} className="px-4 py-3">{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>)}
+                <tr key={row.id} className={`transition-colors group ${row.original.is_active ? "hover:bg-slate-50/50" : "opacity-50"}`}>
+                  {row.getVisibleCells().map((cell) => <td key={cell.id} className="px-4 py-1.5">{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>)}
                 </tr>
               )) : (
                 <tr><td colSpan={columns.length} className="py-12 text-center text-slate-400">No candidates on the waitlist.</td></tr>

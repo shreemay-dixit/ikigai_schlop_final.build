@@ -33,21 +33,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <div className="flex min-h-screen bg-slate-50">
       {/* ─── Sidebar ─── */}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-60 flex-col border-r border-slate-200 bg-white transition-transform md:static md:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-slate-900 transition-transform md:static md:translate-x-0 ${
           open ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         {/* Brand */}
-        <div className="flex h-14 items-center gap-2.5 border-b border-slate-200 px-5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 text-white">
+        <div className="flex h-14 items-center gap-2.5 border-b border-slate-800 px-5">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-500 text-white shadow-sm">
             <HeartPulse className="h-4 w-4" />
           </div>
-          <span className="text-lg font-bold tracking-tight text-slate-900">Fillwell</span>
+          <span className="text-lg font-bold tracking-tight text-white">Fillwell</span>
         </div>
 
         {/* Nav links */}
-        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-0.5">
-          <p className="mb-2 px-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Menu</p>
+        <nav className="flex-1 overflow-y-auto px-3 py-5 space-y-1">
+          <p className="mb-3 px-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">Platform</p>
           {NAV.map((item) => {
             const active = isActive(item.href);
             return (
@@ -55,13 +55,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 key={item.href}
                 href={item.href}
                 onClick={() => setOpen(false)}
-                className={`flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium transition-colors ${
+                className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all ${
                   active
-                    ? "bg-indigo-50 text-indigo-700"
-                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                    ? "bg-indigo-500/10 text-indigo-400"
+                    : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"
                 }`}
               >
-                <item.icon className={`h-4 w-4 ${active ? "text-indigo-600" : "text-slate-400"}`} />
+                <item.icon className={`h-4 w-4 ${active ? "text-indigo-400" : "text-slate-500"}`} />
                 {item.name}
               </Link>
             );
@@ -69,16 +69,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </nav>
 
         {/* User footer */}
-        <div className="border-t border-slate-200 p-3">
-          <div className="flex items-center gap-2.5 rounded-lg px-2 py-2">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-xs font-bold text-indigo-700">
+        <div className="border-t border-slate-800 p-4">
+          <div className="flex items-center gap-3 rounded-xl bg-slate-800/50 p-3 transition hover:bg-slate-800 cursor-pointer">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 text-xs font-bold text-white shadow-inner">
               SL
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold text-slate-900">Dr. Sarah Lin</p>
-              <p className="truncate text-[11px] text-slate-500">Admin</p>
+              <p className="truncate text-sm font-semibold text-white">Dr. Sarah Lin</p>
+              <p className="truncate text-xs text-slate-400">Admin</p>
             </div>
-            <Link href="/login" className="rounded-md p-1.5 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600">
+            <Link href="/login" className="rounded-md p-1.5 text-slate-400 transition-colors hover:text-red-400">
               <LogOut className="h-4 w-4" />
             </Link>
           </div>
