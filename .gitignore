@@ -45,3 +45,25 @@ MANIFEST
 # Logs and databases
 *.log
 *.sqlite3
+
+# Node.js
+node_modules/
+.pnp
+.pnp.js
+
+# Next.js
+.next/
+out/
+build/
+
+# Misc
+.DS_Store
+*.pem
+
+# local env files
+.env*.local
+.env
+
+# Vercel / Netlify
+.vercel
+.netlify

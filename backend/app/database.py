@@ -3,12 +3,19 @@ import logging
 from typing import Optional, Dict, Any, List
 from supabase import create_client, Client
 
+from app.config import settings
+
 logger = logging.getLogger(__name__)
 
-# Retrieve environment variables
-SUPABASE_URL = os.getenv("SUPABASE_URL", "")
+# Retrieve environment variables / settings
+SUPABASE_URL = getattr(settings, "SUPABASE_URL", "") or os.getenv("SUPABASE_URL", "")
 # Prioritize service role key for privileged backend operations, falling back to anon key
-SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_KEY", "")
+SUPABASE_KEY = (
+    getattr(settings, "SUPABASE_SERVICE_ROLE_KEY", "")
+    or getattr(settings, "SUPABASE_KEY", "")
+    or os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+    or os.getenv("SUPABASE_KEY", "")
+)
 
 # In-memory fallback stores for offline development / placeholder credentials
 in_memory_tenants: Dict[str, Dict[str, Any]] = {

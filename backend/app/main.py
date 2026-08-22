@@ -14,6 +14,7 @@ from app.services.ai_engine import parse_user_intent, get_gemini_client, get_gro
 from app.services.queuing_math import QueuingTheoryEngine, compute_queuing_baseline
 from app.services.ml_predictor import load_model, predict_wait_with_variance
 from app.workers.velocity_worker import velocity_tracker, recalculate_rolling_velocity
+from app.services.voice_sms import parse_and_process_sms, process_vapi_tool_call, find_active_ticket_by_phone, update_ticket_wait_time_db
 
 # =============================================================================
 # Step 2: Set up the FastAPI App & Lifespan
@@ -518,3 +519,171 @@ def health_check(request: Request):
         gemini_api_ready=gemini_ready or groq_ready,
         timestamp=datetime.now()
     )
+
+
+# =============================================================================
+# Voice & SMS Integrations (Twilio Webhooks + Vapi Voice Assistant)
+# =============================================================================
+
+class RescheduleRequest(BaseModel):
+    delay_mins: int = Field(default=15, description="Minutes to delay/reschedule ticket")
+
+@app.post("/api/webhooks/twilio/sms")
+async def twilio_inbound_sms(
+    request: Request,
+    background_tasks: BackgroundTasks
+):
+    """
+    Inbound SMS Webhook for Twilio.
+    Supports both urlencoded form data from real Twilio webhooks and JSON.
+    Returns compliant TwiML XML response.
+    """
+    from_phone = "+15550000000"
+    sms_body = ""
+
+    content_type = request.headers.get("content-type", "")
+    body_bytes = await request.body()
+    body_str = body_bytes.decode("utf-8", errors="ignore")
+
+    if "application/x-www-form-urlencoded" in content_type or ("From=" in body_str or "Body=" in body_str):
+        import urllib.parse
+        parsed = urllib.parse.parse_qs(body_str)
+        from_phone = parsed.get("From", [from_phone])[0]
+        sms_body = parsed.get("Body", [""])[0]
+    else:
+        try:
+            import json
+            json_data = json.loads(body_str) if body_str else {}
+            from_phone = json_data.get("From") or json_data.get("from_phone") or from_phone
+            sms_body = json_data.get("Body") or json_data.get("body") or json_data.get("message") or ""
+        except Exception:
+            sms_body = body_str
+
+    model = getattr(request.app.state, "ml_model", None)
+    reply_text, ticket_data = parse_and_process_sms(
+        from_phone=from_phone,
+        sms_body=sms_body,
+        model=model,
+        background_tasks=background_tasks
+    )
+
+    # Return standard TwiML XML
+    from fastapi.responses import Response
+    twiml_xml = f'<?xml version="1.0" encoding="UTF-8"?><Response><Message>{reply_text}</Message></Response>'
+    return Response(content=twiml_xml, media_type="application/xml")
+
+
+@app.post("/api/webhooks/vapi")
+async def vapi_voice_webhook(
+    request: Request,
+    background_tasks: BackgroundTasks
+):
+    """
+    Vapi AI Voice Assistant Server Webhook / Function Calling.
+    Handles conversational tool calls during live phone calls.
+    """
+    payload = await request.json()
+    message = payload.get("message", {})
+    msg_type = message.get("type") or payload.get("type")
+
+    model = getattr(request.app.state, "ml_model", None)
+
+    # Handle Vapi tool-calls
+    if msg_type == "tool-calls":
+        tool_calls = message.get("toolCalls", [])
+        results = []
+        for tc in tool_calls:
+            call_id = tc.get("id")
+            function_data = tc.get("function", {})
+            tool_name = function_data.get("name")
+            tool_args = function_data.get("arguments", {})
+            if isinstance(tool_args, str):
+                import json
+                try:
+                    tool_args = json.loads(tool_args)
+                except Exception:
+                    tool_args = {}
+
+            res_data = process_vapi_tool_call(
+                tool_name=tool_name,
+                args=tool_args,
+                model=model,
+                background_tasks=background_tasks
+            )
+            results.append({
+                "toolCallId": call_id,
+                "result": res_data
+            })
+        return {"results": results}
+
+    # Direct function call fallback
+    if "function" in payload or "tool_name" in payload:
+        tool_name = payload.get("tool_name") or payload.get("function", {}).get("name")
+        tool_args = payload.get("arguments") or payload.get("function", {}).get("arguments", {})
+        if isinstance(tool_args, str):
+            import json
+            try:
+                tool_args = json.loads(tool_args)
+            except Exception:
+                tool_args = {}
+
+        return process_vapi_tool_call(
+            tool_name=tool_name,
+            args=tool_args,
+            model=model,
+            background_tasks=background_tasks
+        )
+
+    return {"status": "ok", "message": "Vapi webhook received"}
+
+
+@app.post("/api/queue/{ticket_id}/reschedule")
+def reschedule_ticket_endpoint(
+    ticket_id: str,
+    payload: RescheduleRequest
+):
+    """
+    Allows a customer to push back / delay their ticket by N minutes.
+    """
+    ticket = None
+    if ticket_id in in_memory_queue:
+        ticket = in_memory_queue[ticket_id]
+    elif supabase:
+        try:
+            res = supabase.table("queue_entries").select("*").eq("id", ticket_id).single().execute()
+            if res.data:
+                ticket = res.data
+        except Exception:
+            pass
+
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Ticket not found.")
+
+    current_wait = float(ticket.get("predicted_wait_mins", 10.0))
+    new_wait = round(current_wait + payload.delay_mins, 1)
+    new_range = f"{max(1, int(new_wait - 2))} - {int(new_wait + 3)} mins"
+
+    update_ticket_wait_time_db(ticket_id, new_wait, new_range)
+    ticket["predicted_wait_mins"] = new_wait
+    ticket["display_range"] = new_range
+
+    return {
+        "success": True,
+        "ticket_id": ticket_id,
+        "ticket_number": ticket.get("ticket_number"),
+        "predicted_wait_mins": new_wait,
+        "display_range": new_range,
+        "delay_mins_added": payload.delay_mins
+    }
+
+
+@app.get("/api/queue/lookup")
+def lookup_customer_ticket(phone_number: str):
+    """
+    Finds the active queue ticket for a given phone number.
+    """
+    ticket = find_active_ticket_by_phone(phone_number)
+    if not ticket:
+        raise HTTPException(status_code=404, detail="No active ticket found for this phone number.")
+    return ticket
+

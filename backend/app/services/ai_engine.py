@@ -4,6 +4,8 @@ import logging
 from typing import Dict, Any, Optional
 from pydantic import BaseModel, Field
 
+from app.config import settings
+
 # Primary and secondary SDK imports
 try:
     from google import genai
@@ -97,9 +99,15 @@ SAFE_FALLBACK: Dict[str, Any] = {
 gemini_client: Optional[Any] = None
 groq_client: Optional[Any] = None
 
+def _get_gemini_api_key() -> Optional[str]:
+    return getattr(settings, "GEMINI_API_KEY", "") or os.getenv("GEMINI_API_KEY")
+
+def _get_groq_api_key() -> Optional[str]:
+    return getattr(settings, "GROQ_API_KEY", "") or os.getenv("GROQ_API_KEY")
+
 # Initialize Google GenAI client globally
 try:
-    gemini_key = os.getenv("GEMINI_API_KEY")
+    gemini_key = _get_gemini_api_key()
     if gemini_key and genai is not None:
         gemini_client = genai.Client(api_key=gemini_key)
     else:
@@ -110,7 +118,7 @@ except Exception as e:
 
 # Initialize Groq client globally
 try:
-    groq_key = os.getenv("GROQ_API_KEY")
+    groq_key = _get_groq_api_key()
     if groq_key and Groq is not None:
         groq_client = Groq(api_key=groq_key)
     else:
@@ -123,7 +131,7 @@ except Exception as e:
 def get_gemini_client() -> Optional[Any]:
     global gemini_client
     if gemini_client is None and genai is not None:
-        k = os.getenv("GEMINI_API_KEY")
+        k = _get_gemini_api_key()
         if k:
             try:
                 gemini_client = genai.Client(api_key=k)
@@ -134,7 +142,7 @@ def get_gemini_client() -> Optional[Any]:
 def get_groq_client() -> Optional[Any]:
     global groq_client
     if groq_client is None and Groq is not None:
-        k = os.getenv("GROQ_API_KEY")
+        k = _get_groq_api_key()
         if k:
             try:
                 groq_client = Groq(api_key=k)
@@ -165,12 +173,15 @@ def build_dynamic_system_prompt(tenant_info: Dict[str, Any]) -> str:
     )
     return prompt
 
+# Supported Gemini models in priority order
+GEMINI_MODELS = ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-flash-latest"]
+
 # =============================================================================
 # Step 3: Primary Engine (Gemini)
 # =============================================================================
 def _extract_with_gemini(user_text: str, tenant_info: Dict[str, Any]) -> QueueIntent:
     """
-    Tier 1 extraction using google-genai SDK targeting gemini-2.5-flash
+    Tier 1 extraction using google-genai SDK targeting Gemini models
     with dynamic system instructions and strict Pydantic structured outputs.
     """
     client = get_gemini_client()
@@ -179,27 +190,33 @@ def _extract_with_gemini(user_text: str, tenant_info: Dict[str, Any]) -> QueueIn
 
     system_instruction = build_dynamic_system_prompt(tenant_info)
 
-    response = client.models.generate_content(
-        model="gemini-2.5-flash",
-        contents=user_text,
-        config=types.GenerateContentConfig(
-            system_instruction=system_instruction,
-            temperature=0.1,
-            response_mime_type="application/json",
-            response_schema=QueueIntent
-        )
-    )
+    last_err = None
+    for model_name in GEMINI_MODELS:
+        try:
+            response = client.models.generate_content(
+                model=model_name,
+                contents=user_text,
+                config=types.GenerateContentConfig(
+                    system_instruction=system_instruction,
+                    temperature=0.1,
+                    response_mime_type="application/json",
+                    response_schema=QueueIntent
+                )
+            )
 
-    if response and response.parsed:
-        if isinstance(response.parsed, QueueIntent):
-            return response.parsed
-        elif isinstance(response.parsed, dict):
-            return QueueIntent(**response.parsed)
+            if response and response.parsed:
+                if isinstance(response.parsed, QueueIntent):
+                    return response.parsed
+                elif isinstance(response.parsed, dict):
+                    return QueueIntent(**response.parsed)
 
-    if response and response.text:
-        return QueueIntent.model_validate_json(response.text)
+            if response and response.text:
+                return QueueIntent.model_validate_json(response.text)
+        except Exception as e:
+            last_err = e
+            logger.warning(f"[ai_engine] Gemini model {model_name} failed: {e}. Trying fallback model...")
 
-    raise ValueError("Gemini returned an empty response.")
+    raise last_err or ValueError("Gemini returned an empty response.")
 
 # =============================================================================
 # Step 4: Secondary Engine (Groq Fallback)

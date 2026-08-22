@@ -1,0 +1,461 @@
+/* =============================================================================
+   Smart Queue Intelligence - Mobile-First Client Portal Stylesheet
+   ============================================================================= */
+
+:root {
+  --bg-base: #06090f;
+  --bg-card: rgba(15, 23, 42, 0.85);
+  --bg-card-elevated: #1e293b;
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-accent: rgba(99, 102, 241, 0.35);
+  
+  --primary: #6366f1;
+  --primary-glow: rgba(99, 102, 241, 0.35);
+  --accent-cyan: #06b6d4;
+  --accent-emerald: #10b981;
+  --accent-amber: #f59e0b;
+  --accent-rose: #f43f5e;
+
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  background-image: 
+    radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.15) 0%, transparent 60%),
+    radial-gradient(circle at 100% 100%, rgba(6, 182, 212, 0.08) 0%, transparent 50%);
+  background-attachment: fixed;
+  padding: 1rem;
+}
+
+.client-app-container {
+  max-width: 480px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding-bottom: 2rem;
+}
+
+/* Header */
+.client-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  background: var(--bg-card);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+}
+
+.brand-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.brand-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--primary), var(--accent-cyan));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 1.1rem;
+  color: #fff;
+}
+
+.brand-info h1 {
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.brand-info p {
+  font-size: 0.725rem;
+  color: var(--text-secondary);
+}
+
+.btn-nav-back {
+  font-size: 0.75rem;
+  padding: 0.35rem 0.65rem;
+  background: var(--bg-card-elevated);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.btn-nav-back:hover {
+  color: var(--text-primary);
+  border-color: var(--border-accent);
+}
+
+/* Mode Selection Tabs */
+.client-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  background: var(--bg-card);
+  padding: 0.35rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  gap: 0.35rem;
+}
+
+.client-tab-btn {
+  padding: 0.6rem 0.5rem;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 0.775rem;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  transition: all 0.2s ease;
+}
+
+.client-tab-btn span.tab-icon {
+  font-size: 1.1rem;
+}
+
+.client-tab-btn.active {
+  background: var(--primary);
+  color: #fff;
+  box-shadow: 0 4px 12px var(--primary-glow);
+}
+
+/* Card Sections */
+.client-section {
+  display: none;
+  animation: fadeIn 0.25s ease-out;
+}
+
+.client-section.active {
+  display: block;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.client-card {
+  background: var(--bg-card);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* Voice Call UI (Option 2: 1-Tap Web Call) */
+.voice-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 1rem 0;
+  gap: 1.25rem;
+}
+
+.voice-status-ring {
+  width: 130px;
+  height: 130px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.2) 0%, rgba(15, 23, 42, 0.8) 70%);
+  border: 2px solid var(--border-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.voice-status-ring.active {
+  border-color: var(--accent-emerald);
+  box-shadow: 0 0 35px rgba(16, 185, 129, 0.4);
+  animation: ringPulse 1.5s infinite;
+}
+
+@keyframes ringPulse {
+  0% { transform: scale(0.97); }
+  50% { transform: scale(1.03); }
+  100% { transform: scale(0.97); }
+}
+
+.voice-icon {
+  font-size: 2.75rem;
+}
+
+/* Audio Wave Visualizer Bars */
+.wave-bars {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 32px;
+}
+
+.wave-bar {
+  width: 4px;
+  background: var(--primary-light);
+  border-radius: 9999px;
+  height: 8px;
+  transition: height 0.1s ease;
+}
+
+.voice-status-ring.active ~ .wave-bars .wave-bar:nth-child(1) { animation: waveAnim 0.7s infinite alternate 0.1s; }
+.voice-status-ring.active ~ .wave-bars .wave-bar:nth-child(2) { animation: waveAnim 0.7s infinite alternate 0.3s; }
+.voice-status-ring.active ~ .wave-bars .wave-bar:nth-child(3) { animation: waveAnim 0.7s infinite alternate 0.5s; }
+.voice-status-ring.active ~ .wave-bars .wave-bar:nth-child(4) { animation: waveAnim 0.7s infinite alternate 0.2s; }
+.voice-status-ring.active ~ .wave-bars .wave-bar:nth-child(5) { animation: waveAnim 0.7s infinite alternate 0.4s; }
+
+@keyframes waveAnim {
+  0% { height: 6px; background: var(--primary); }
+  100% { height: 28px; background: var(--accent-cyan); }
+}
+
+.call-transcript-box {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 0.85rem;
+  font-size: 0.825rem;
+  color: var(--text-secondary);
+  min-height: 80px;
+  max-height: 140px;
+  overflow-y: auto;
+  text-align: left;
+  line-height: 1.5;
+}
+
+.transcript-agent {
+  color: var(--accent-cyan);
+  font-weight: 600;
+}
+
+.transcript-user {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+/* SMS Simulator UI */
+.sms-chat-window {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-height: 280px;
+  overflow-y: auto;
+  padding-right: 0.35rem;
+}
+
+.sms-bubble {
+  max-width: 82%;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-md);
+  font-size: 0.85rem;
+  line-height: 1.4;
+  word-break: break-word;
+  white-space: pre-line;
+}
+
+.sms-bubble.incoming {
+  align-self: flex-start;
+  background: var(--bg-card-elevated);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  border-bottom-left-radius: 4px;
+}
+
+.sms-bubble.outgoing {
+  align-self: flex-end;
+  background: linear-gradient(135deg, var(--primary), #4f46e5);
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+
+.sms-input-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.sms-input {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  outline: none;
+}
+
+.sms-input:focus {
+  border-color: var(--primary);
+}
+
+.btn-send {
+  padding: 0.75rem 1.15rem;
+  background: var(--primary);
+  border: none;
+  border-radius: var(--radius-sm);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Option 1: Direct Phone Dialer Card */
+.direct-phone-box {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(6, 182, 212, 0.08));
+  border: 1px solid var(--border-accent);
+  border-radius: var(--radius-md);
+  padding: 1rem 1.25rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.phone-details span {
+  font-size: 0.725rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.phone-number-val {
+  font-family: var(--font-mono);
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--accent-cyan);
+}
+
+.btn-dial {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: linear-gradient(135deg, var(--accent-emerald), #059669);
+  color: #fff;
+  text-decoration: none;
+  padding: 0.6rem 1rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+/* Live Ticket Status Card */
+.live-ticket-card {
+  background: linear-gradient(145deg, #111827, #1e293b);
+  border: 1px solid var(--border-accent);
+  border-radius: var(--radius-md);
+  padding: 1.5rem;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.ticket-top-badge {
+  font-family: var(--font-mono);
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--accent-cyan);
+}
+
+.wait-countdown {
+  font-family: var(--font-mono);
+  font-size: 3.5rem;
+  font-weight: 900;
+  color: var(--text-primary);
+  margin: 0.5rem 0;
+  line-height: 1;
+}
+
+.wait-unit {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.ticket-status-pill {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  background: rgba(16, 185, 129, 0.2);
+  color: #6ee7b7;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-top: 0.5rem;
+}
+
+/* Reschedule Buttons Grid */
+.action-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.btn-action {
+  padding: 0.75rem 0.5rem;
+  background: var(--bg-card-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+}
+
+.btn-action:hover {
+  background: var(--primary);
+  border-color: var(--primary);
+}
+
+.btn-action.btn-cancel {
+  grid-column: span 2;
+  color: var(--accent-rose);
+  border-color: rgba(244, 63, 94, 0.3);
+}
+
+.btn-action.btn-cancel:hover {
+  background: var(--accent-rose);
+  color: #fff;
+}

@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Smart Queue AI | 1-Tap Voice & SMS Booking</title>
+  <meta name="description" content="Instant zero-friction customer queue booking and rescheduling via 1-Tap AI Voice Calls and Twilio SMS.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="client.css">
+</head>
+<body>
+
+  <div class="client-app-container">
+    <!-- Top Header -->
+    <header class="client-header">
+      <div class="brand-row">
+        <div class="brand-avatar">🎙️</div>
+        <div class="brand-info">
+          <h1>Smart Queue Assistant</h1>
+          <p id="clientTenantLabel">Metro Urgent Care (ER)</p>
+        </div>
+      </div>
+      <a href="index.html" class="btn-nav-back">📊 Staff View</a>
+    </header>
+
+    <!-- Client Tabs -->
+    <nav class="client-tabs">
+      <button class="client-tab-btn active" id="tabBtnVoice" onclick="switchClientTab('voice')">
+        <span class="tab-icon">📞</span>
+        <span>1-Tap Voice</span>
+      </button>
+      <button class="client-tab-btn" id="tabBtnSms" onclick="switchClientTab('sms')">
+        <span class="tab-icon">💬</span>
+        <span>SMS Booking</span>
+      </button>
+      <button class="client-tab-btn" id="tabBtnTicket" onclick="switchClientTab('ticket')">
+        <span class="tab-icon">🎟️</span>
+        <span>My Ticket</span>
+      </button>
+    </nav>
+
+    <!-- =====================================================================
+         TAB 1: 1-Tap Web Voice Call (WebRTC / Voice AI Assistant)
+         ===================================================================== -->
+    <section id="sectionVoice" class="client-section active">
+      <div class="client-card">
+        <!-- Direct Phone Banner (Option 1) -->
+        <div class="direct-phone-box">
+          <div class="phone-details">
+            <span>Option 1: Traditional Phone Call</span>
+            <div class="phone-number-val" id="displayPhoneNumber">+1 (800) 555-0199</div>
+          </div>
+          <a href="tel:+18005550199" class="btn-dial" id="btnPhoneDial">
+            <span>📞 Call</span>
+          </a>
+        </div>
+
+        <div style="text-align: center; color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; font-weight: 600;">
+          — OR OPTION 2: FREE 1-TAP WEB CALL —
+        </div>
+
+        <!-- Voice Hero Button -->
+        <div class="voice-hero">
+          <div class="voice-status-ring" id="voiceRing" onclick="toggleVoiceCall()">
+            <div class="voice-icon" id="voiceIcon">🎙️</div>
+          </div>
+
+          <div class="wave-bars" id="waveBars">
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+          </div>
+
+          <div style="text-align: center;">
+            <h3 style="font-size: 1.1rem; font-weight: 700;" id="voiceStatusTitle">Tap to Start AI Voice Call</h3>
+            <p style="font-size: 0.775rem; color: var(--text-secondary); margin-top: 0.25rem;" id="voiceStatusSub">
+              Talk naturally with the triage agent to book or reschedule.
+            </p>
+          </div>
+
+          <!-- Live Transcript -->
+          <div class="call-transcript-box" id="callTranscriptBox">
+            <p class="transcript-agent">🤖 AI Agent: "Hello! Welcome to Metro Urgent Care. How can I assist with your visit or ticket today?"</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =====================================================================
+         TAB 2: Interactive SMS Chat Simulator & Twilio Inbound Webhook
+         ===================================================================== -->
+    <section id="sectionSms" class="client-section">
+      <div class="client-card">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <h2 style="font-size: 0.95rem; font-weight: 700;">💬 2-Way SMS Queue Assistant</h2>
+          <span style="font-size: 0.7rem; color: var(--accent-emerald); font-weight: 600;">Twilio TwiML Ready</span>
+        </div>
+
+        <!-- Preset Quick Prompts -->
+        <div style="display: flex; gap: 0.4rem; overflow-x: auto; padding-bottom: 0.35rem;">
+          <button class="btn-action" style="white-space: nowrap; font-size: 0.725rem;" onclick="sendQuickSms('Book ER - severe chest pain')">
+            Book ER
+          </button>
+          <button class="btn-action" style="white-space: nowrap; font-size: 0.725rem;" onclick="sendQuickSms('Status')">
+            Check Status
+          </button>
+          <button class="btn-action" style="white-space: nowrap; font-size: 0.725rem;" onclick="sendQuickSms('Reschedule +15 mins')">
+            Reschedule +15m
+          </button>
+          <button class="btn-action" style="white-space: nowrap; font-size: 0.725rem;" onclick="sendQuickSms('Cancel')">
+            Cancel
+          </button>
+        </div>
+
+        <!-- SMS Chat Thread -->
+        <div class="sms-chat-window" id="smsChatWindow">
+          <div class="sms-bubble incoming">
+            👋 Welcome to Smart Queue SMS! You can text your reason for visit to book a spot, or text <b>STATUS</b>, <b>RESCHEDULE</b>, or <b>CANCEL</b> anytime.
+          </div>
+        </div>
+
+        <!-- SMS Input Bar -->
+        <form class="sms-input-row" onsubmit="handleSmsSubmit(event)">
+          <input type="text" id="smsInput" class="sms-input" placeholder="Type SMS (e.g. 'I need to see a doctor for high fever')..." required autocomplete="off">
+          <button type="submit" class="btn-send">Send</button>
+        </form>
+      </div>
+    </section>
+
+    <!-- =====================================================================
+         TAB 3: My Live Ticket & 1-Click Rescheduling Hub
+         ===================================================================== -->
+    <section id="sectionTicket" class="client-section">
+      <div class="client-card">
+        <!-- Live Ticket Card -->
+        <div class="live-ticket-card" id="liveTicketContainer">
+          <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Your Queue Ticket</span>
+          <div class="ticket-top-badge" id="clientTicketNum">T-170049-06</div>
+          <div class="ticket-status-pill" id="clientTicketStatus">Status: Waiting</div>
+
+          <div style="margin: 1.5rem 0;">
+            <div class="wait-countdown" id="clientWaitMins">11</div>
+            <div class="wait-unit">Estimated Minutes Remaining</div>
+            <div style="font-size: 0.8rem; color: var(--accent-cyan); margin-top: 0.35rem;" id="clientRangeDisplay">Display: 10 - 13 mins</div>
+          </div>
+
+          <div style="font-size: 0.775rem; color: var(--text-secondary);">
+            Tenant: <strong id="clientTicketTenant" style="color: var(--text-primary);">Metro Urgent Care</strong>
+          </div>
+        </div>
+
+        <!-- Reschedule & Delay Actions -->
+        <div>
+          <h4 style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem;">⏱️ Need More Time? 1-Click Delay:</h4>
+          <div class="action-grid">
+            <button class="btn-action" onclick="delayActiveTicket(15)">
+              <span>➕ Delay +15 Mins</span>
+            </button>
+            <button class="btn-action" onclick="delayActiveTicket(30)">
+              <span>➕ Delay +30 Mins</span>
+            </button>
+            <button class="btn-action btn-cancel" onclick="cancelActiveTicket()">
+              <span>❌ Cancel & Release Spot</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script src="client.js"></script>
+</body>
+</html>
