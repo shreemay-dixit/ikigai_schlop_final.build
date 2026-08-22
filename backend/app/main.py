@@ -304,7 +304,7 @@ def update_ticket_status(
         business_id = updated_row.get("business_id", "default")
 
     if payload.status == "completed":
-        background_tasks.add_task(recalculate_rolling_velocity, business_id)
+        background_tasks.add_task(recalculate_rolling_velocity, business_id, supabase)
 
     return QueueEntrySchema(
         id=str(updated_row["id"]),
