@@ -21,20 +21,22 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 # =============================================================================
-# Step 1: Define the Pydantic Target Schema
+# Step 1: Define the Universal Pydantic Target Schema
 # =============================================================================
 class QueueIntent(BaseModel):
     """
-    Structured feature schema extracted from unstructured user intake text.
-    Enforces uniform numerical classification for both LLM outputs and downstream ML pipelines.
+    Universal 5-factor mathematical feature vector extracted from unstructured user text.
+    Agnostic to any industry (Healthcare, Banking, Restaurant, DMV, Retail).
     """
     service_type: int = Field(
         default=1,
+        ge=0,
+        le=2,
         description=(
-            "Categorize the user service request tier: "
-            "0 = Routine / Quick Task (e.g., quick drop-off, document pickup, basic query, simple payment, balance check), "
-            "1 = Standard Consultation (e.g., general doctor visit, vehicle registration renewal, standard account opening, standard advisory), "
-            "2 = Complex / Lengthy Procedure (e.g., loan approval, specialized medical examination, commercial permit, complex dispute resolution)."
+            "Universal complexity tier of the requested service: "
+            "0 = Routine / Quick Task (e.g., Quick check deposit, bar/takeout pickup, license renewal pickup, routine query), "
+            "1 = Standard Consultation (e.g., General doctor consult, account advisory, standard dining table, driving test), "
+            "2 = Complex / Lengthy Procedure (e.g., Emergency medical procedure, commercial loan/mortgage approval, large banquet seating, complex title dispute)."
         )
     )
     priority_score: int = Field(
@@ -42,12 +44,12 @@ class QueueIntent(BaseModel):
         ge=1,
         le=5,
         description=(
-            "Urgency rating from 1 to 5: "
-            "1 = Lowest / Routine scheduled visit, "
-            "2 = Low priority, "
-            "3 = Moderate urgency / distressed customer, "
-            "4 = High urgency / time-critical request, "
-            "5 = Critical / Immediate Triage (medical emergency, severe pain, bleeding, urgent VIP dispatch)."
+            "Universal urgency and priority tier from 1 to 5 based on tenant urgency guidelines: "
+            "1 = Lowest / Routine scheduled visit / Quick drop-off, "
+            "2 = Low priority / Standard walk-in, "
+            "3 = Moderate urgency / Standard advisory or table, "
+            "4 = High urgency / VIP triage / Confirmed special celebration / Urgent commercial matter, "
+            "5 = Critical / Immediate Triage (Severe life-threatening emergency, wire fraud, ADA express assistance)."
         )
     )
     is_walk_in: int = Field(
@@ -56,8 +58,8 @@ class QueueIntent(BaseModel):
         le=1,
         description=(
             "Arrival type: "
-            "1 if text implies an unannounced, spontaneous physical walk-in arrival; "
-            "0 if explicitly referencing a pre-booked, scheduled appointment, booking, or reservation."
+            "1 if the text implies an unannounced, spontaneous physical walk-in arrival; "
+            "0 if explicitly referencing a pre-booked reservation, scheduled appointment, or advance booking."
         )
     )
     party_size: int = Field(
@@ -65,7 +67,7 @@ class QueueIntent(BaseModel):
         ge=1,
         description=(
             "Total number of individuals needing service based on group mentions "
-            "(e.g., 'with my 2 kids' -> 3, 'family of 4' -> 4, 'my husband and I' -> 2, 'just me' -> 1). Default to 1."
+            "(e.g., 'Table for 6' -> 6, 'with my 2 kids' -> 3, 'family of 4' -> 4, 'my husband and I' -> 2, 'just me' -> 1). Default to 1."
         )
     )
     age_bracket: int = Field(
@@ -74,7 +76,7 @@ class QueueIntent(BaseModel):
         le=2,
         description=(
             "Demographic age group: "
-            "0 for minors/youth (under 18 years old, child, pediatric), "
+            "0 for minors/youth (under 18 years old, child, infant, pediatric, student), "
             "1 for adults (18-60 years old), "
             "2 for senior citizens (60+ years old, elderly, pensioner, geriatric). Default to 1."
         )
@@ -101,7 +103,7 @@ try:
     if gemini_key and genai is not None:
         gemini_client = genai.Client(api_key=gemini_key)
     else:
-        logger.warning("[ai_engine] GEMINI_API_KEY not set or google-genai SDK not available. Gemini client not initialized.")
+        logger.warning("[ai_engine] GEMINI_API_KEY not set or google-genai SDK not available.")
 except Exception as e:
     logger.warning(f"[ai_engine] Failed to initialize Google GenAI client: {e}")
     gemini_client = None
@@ -112,7 +114,7 @@ try:
     if groq_key and Groq is not None:
         groq_client = Groq(api_key=groq_key)
     else:
-        logger.warning("[ai_engine] GROQ_API_KEY not set or groq SDK not available. Groq client not initialized.")
+        logger.warning("[ai_engine] GROQ_API_KEY not set or groq SDK not available.")
 except Exception as e:
     logger.warning(f"[ai_engine] Failed to initialize Groq client: {e}")
     groq_client = None
@@ -140,24 +142,42 @@ def get_groq_client() -> Optional[Any]:
                 logger.warning(f"[ai_engine] Lazy Groq init failed: {e}")
     return groq_client
 
+def build_dynamic_system_prompt(tenant_info: Dict[str, Any]) -> str:
+    """
+    Constructs an agnostic dynamic system prompt injecting the tenant's specific persona,
+    business name, industry, and explicit urgency guidelines without any hardcoded rules.
+    """
+    business_name = tenant_info.get("business_name") or tenant_info.get("business_id", "Service Center")
+    industry = tenant_info.get("industry", "General Services")
+    ai_persona = tenant_info.get("ai_persona", "Universal customer service and intake desk.")
+    urgency_guidelines = tenant_info.get("urgency_guidelines", "")
+
+    prompt = (
+        f"You are a universal intake triage agent for {business_name} ({industry}).\n"
+        f"Industry Context: {ai_persona}\n"
+    )
+    if urgency_guidelines:
+        prompt += f"Urgency Rules: {urgency_guidelines}\n"
+
+    prompt += (
+        "Map the user's natural language input into the structured QueueIntent schema strictly. "
+        "Adhere to the universal mapping rules for service_type, priority_score, is_walk_in, party_size, and age_bracket."
+    )
+    return prompt
+
 # =============================================================================
 # Step 3: Primary Engine (Gemini)
 # =============================================================================
-def _extract_with_gemini(user_text: str, tenant_persona: str) -> QueueIntent:
+def _extract_with_gemini(user_text: str, tenant_info: Dict[str, Any]) -> QueueIntent:
     """
     Tier 1 extraction using google-genai SDK targeting gemini-2.5-flash
-    with strict Pydantic structured outputs.
+    with dynamic system instructions and strict Pydantic structured outputs.
     """
     client = get_gemini_client()
     if client is None:
         raise RuntimeError("Google GenAI client is not configured or unavailable.")
 
-    system_instruction = (
-        f"You are an expert AI triage and intake assistant for a {tenant_persona}. "
-        "Analyze the customer's raw input description and extract numerical queue classification features strictly adhering to the schema. "
-        f"Contextualize priority ratings and task complexity according to typical {tenant_persona} workflows "
-        "(e.g., severe chest pain or bleeding in a hospital is priority 5; routine DMV license renewal is service_type 1; quick document drop-off is service_type 0)."
-    )
+    system_instruction = build_dynamic_system_prompt(tenant_info)
 
     response = client.models.generate_content(
         model="gemini-2.5-flash",
@@ -184,23 +204,22 @@ def _extract_with_gemini(user_text: str, tenant_persona: str) -> QueueIntent:
 # =============================================================================
 # Step 4: Secondary Engine (Groq Fallback)
 # =============================================================================
-def _extract_with_groq(user_text: str, tenant_persona: str) -> QueueIntent:
+def _extract_with_groq(user_text: str, tenant_info: Dict[str, Any]) -> QueueIntent:
     """
     Tier 2 secondary fallback extraction using groq SDK targeting llama-3.3-70b-versatile
-    with JSON mode and explicit schema injection.
+    with JSON mode and dynamic schema injection.
     """
     client = get_groq_client()
     if client is None:
         raise RuntimeError("Groq client is not configured or unavailable.")
 
-    # Convert Pydantic schema to JSON schema string
     json_schema_str = json.dumps(QueueIntent.model_json_schema(), indent=2)
-
+    base_prompt = build_dynamic_system_prompt(tenant_info)
+    
     system_prompt = (
-        f"You are an expert AI triage and intake assistant for a {tenant_persona}. "
-        "Analyze the customer's raw input text and extract structured queue classification features. "
+        f"{base_prompt}\n"
         f"Output ONLY valid JSON strictly adhering to this JSON Schema:\n{json_schema_str}\n"
-        "Do not include any explanation or markdown wrapping outside the raw JSON object."
+        "Do not include any markdown formatting, explanations, or extra text."
     )
 
     chat_completion = client.chat.completions.create(
@@ -222,13 +241,32 @@ def _extract_with_groq(user_text: str, tenant_persona: str) -> QueueIntent:
 # =============================================================================
 # Step 5: Master Orchestration Pipeline
 # =============================================================================
-def parse_user_intent(user_text: str, tenant_persona: str = "general customer service desk") -> Dict[str, Any]:
+def parse_user_intent(user_text: str, tenant_context: Any = "general customer service desk") -> Dict[str, Any]:
     """
     Master 3-tier resilient intent extraction pipeline:
     - Tier 1: Gemini 2.5 Flash via google-genai structured outputs
     - Tier 2: Llama 3.3 70B via Groq JSON mode
     - Tier 3: Hardcoded deterministic safety baseline
+
+    Accepts tenant_context as either a dictionary of tenant fields or a string persona.
     """
+    if isinstance(tenant_context, str):
+        tenant_info = {
+            "business_name": "Service Center",
+            "industry": "General Services",
+            "ai_persona": tenant_context,
+            "urgency_guidelines": ""
+        }
+    elif isinstance(tenant_context, dict):
+        tenant_info = tenant_context
+    else:
+        tenant_info = {
+            "business_name": "Service Center",
+            "industry": "General Services",
+            "ai_persona": str(tenant_context),
+            "urgency_guidelines": ""
+        }
+
     if not user_text or not user_text.strip():
         logger.info("[ai_engine] Empty user text received; returning hardcoded fallback.")
         fallback = SAFE_FALLBACK.copy()
@@ -239,7 +277,7 @@ def parse_user_intent(user_text: str, tenant_persona: str = "general customer se
     # Tier 1: Primary Extraction (Gemini)
     # -------------------------------------------------------------------------
     try:
-        intent_obj = _extract_with_gemini(user_text, tenant_persona)
+        intent_obj = _extract_with_gemini(user_text, tenant_info)
         result = intent_obj.model_dump()
         result["extracted_by"] = "gemini"
         logger.info(f"[ai_engine] Extracted intent using Gemini: {result}")
@@ -251,7 +289,7 @@ def parse_user_intent(user_text: str, tenant_persona: str = "general customer se
     # Tier 2: Secondary Fallback (Groq)
     # -------------------------------------------------------------------------
     try:
-        intent_obj = _extract_with_groq(user_text, tenant_persona)
+        intent_obj = _extract_with_groq(user_text, tenant_info)
         result = intent_obj.model_dump()
         result["extracted_by"] = "groq"
         logger.info(f"[ai_engine] Extracted intent using Groq fallback: {result}")

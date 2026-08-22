@@ -138,11 +138,9 @@ def intake_customer(payload: IntakeRequest, background_tasks: BackgroundTasks, r
 
     active_counters = tenant_data.get("active_counters", settings.DEFAULT_ACTIVE_COUNTERS)
     base_service_time = float(tenant_data.get("base_service_time_mins", settings.DEFAULT_SERVICE_TIME_MIN))
-    ai_persona = tenant_data.get("ai_persona", "general customer service desk")
-
-    # 3-Tier AI Intent extraction (Gemini -> Groq -> Hardcoded)
+    # 3-Tier Dynamic AI Intent extraction (Gemini -> Groq -> Hardcoded)
     try:
-        extracted_features = parse_user_intent(payload.user_text, ai_persona)
+        extracted_features = parse_user_intent(payload.user_text, tenant_data)
     except Exception:
         extracted_features = {
             "service_type": 1,

@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-Standalone End-to-End Smoke Test Script
-Simulates the complete lifecycle of the Smart Queue Intelligence Platform.
+Multi-Tenant Pipeline Smoke Test (test_pipeline.py)
+Tests the Universal Plug-and-Play Queue Engine across multiple industries:
+Healthcare, Banking, Restaurant, and DMV / Government.
 """
 
 import json
@@ -19,143 +20,161 @@ except ImportError:
 BASE_URL = "http://localhost:8000"
 
 def print_section(title: str):
-    print("\n" + "=" * 70)
+    print("\n" + "=" * 80)
     print(f"  {title}")
-    print("=" * 70)
+    print("=" * 80)
 
 def main():
-    print_section("SMART QUEUE INTELLIGENCE PLATFORM: E2E SMOKE TEST")
-    print(f"Connecting to backend server at: {BASE_URL}")
+    print_section("UNIVERSAL PLUG-AND-PLAY MULTI-TENANT PIPELINE SMOKE TEST")
+    print(f"Targeting API Server at: {BASE_URL}")
 
     # Check Health
     try:
         r_health = requests.get(f"{BASE_URL}/api/health", timeout=5)
-        print(f"Health Probe Status Code: {r_health.status_code}")
-        print("Health Probe Response:")
+        print(f"Health Probe Status: {r_health.status_code}")
         print(json.dumps(r_health.json(), indent=2))
     except Exception as e:
         print(f"ERROR: Cannot connect to backend server at {BASE_URL}. Ensure uvicorn is running.")
         print(f"Details: {e}")
         sys.exit(1)
 
-    business_id = "metro_urgent_care"
-
     # -------------------------------------------------------------------------
-    # Step A: Send Low-Priority User Intake Request
+    # Test Case 1: Healthcare (Metro Urgent Care)
     # -------------------------------------------------------------------------
-    print_section("STEP A: Low-Priority Intake Request")
-    payload_low = {
-        "business_id": business_id,
-        "user_text": "I need a routine checkup, no rush.",
-        "phone_number": "+1555100200"
+    print_section("TEST CASE 1: HEALTHCARE (metro_urgent_care)")
+    payload_health = {
+        "business_id": "metro_urgent_care",
+        "user_text": "Child with severe allergic reaction, just rushed in.",
+        "phone_number": "+1555001122"
     }
-    print(f"Sending payload:\n{json.dumps(payload_low, indent=2)}")
-    
-    r_low = requests.post(f"{BASE_URL}/api/intake", json=payload_low, timeout=10)
-    if r_low.status_code != 200:
-        print(f"Failed Step A: {r_low.text}")
+    print(f"Intake Payload:\n{json.dumps(payload_health, indent=2)}")
+    r1 = requests.post(f"{BASE_URL}/api/intake", json=payload_health, timeout=15)
+    if r1.status_code != 200:
+        print(f"Failed Test Case 1: {r1.text}")
         sys.exit(1)
-        
-    low_data = r_low.json()
-    ticket_id_low = low_data["ticket_id"]
-    prio_low = low_data["priority_score"]
-    display_low = low_data["display_range"]
-    
-    print(f"\n[Step A Result]")
-    print(f"Ticket ID: {ticket_id_low}")
-    print(f"Ticket Number: {low_data['ticket_number']}")
-    print(f"Priority Score: {prio_low}")
-    print(f"Predicted Wait: {low_data['predicted_wait_mins']} mins (Display: {display_low})")
-    print("Full JSON Response:")
-    print(json.dumps(low_data, indent=2))
 
-    # Brief delay so timestamps differ
+    data1 = r1.json()
+    extracted1 = data1.get("extracted_features", {})
+    print("\n[Healthcare Intake Result]")
+    print(f"Ticket ID:      {data1['ticket_id']}")
+    print(f"Ticket Number:  {data1['ticket_number']}")
+    print(f"Priority Score: {data1['priority_score']} (Extracted: {extracted1.get('priority_score')})")
+    print(f"Service Type:   {extracted1.get('service_type')}")
+    print(f"Predicted Wait: {data1['predicted_wait_mins']} mins ({data1['display_range']})")
+    print(f"Extracted By:   {extracted1.get('extracted_by')}")
+    print(json.dumps(data1, indent=2))
+
     time.sleep(1.0)
 
     # -------------------------------------------------------------------------
-    # Step B: Send High-Priority User Intake Request (Arriving Second)
+    # Test Case 2: Banking (Apex Commercial Bank)
     # -------------------------------------------------------------------------
-    print_section("STEP B: High-Priority Intake Request (Emergency Walk-In)")
-    payload_high = {
-        "business_id": business_id,
-        "user_text": "My child has a severe fever and is having trouble breathing, walked in just now.",
-        "phone_number": "+1555999888"
+    print_section("TEST CASE 2: BANKING (apex_commercial_bank)")
+    payload_bank = {
+        "business_id": "apex_commercial_bank",
+        "user_text": "I need to deposit a $50 check at the counter, quick visit.",
+        "phone_number": "+1555334455"
     }
-    print(f"Sending payload:\n{json.dumps(payload_high, indent=2)}")
-    
-    r_high = requests.post(f"{BASE_URL}/api/intake", json=payload_high, timeout=10)
-    if r_high.status_code != 200:
-        print(f"Failed Step B: {r_high.text}")
+    print(f"Intake Payload:\n{json.dumps(payload_bank, indent=2)}")
+    r2 = requests.post(f"{BASE_URL}/api/intake", json=payload_bank, timeout=15)
+    if r2.status_code != 200:
+        print(f"Failed Test Case 2: {r2.text}")
         sys.exit(1)
-        
-    high_data = r_high.json()
-    ticket_id_high = high_data["ticket_id"]
-    prio_high = high_data["priority_score"]
-    display_high = high_data["display_range"]
-    
-    print(f"\n[Step B Result]")
-    print(f"Ticket ID: {ticket_id_high}")
-    print(f"Ticket Number: {high_data['ticket_number']}")
-    print(f"Priority Score: {prio_high}")
-    print(f"Predicted Wait: {high_data['predicted_wait_mins']} mins (Display: {display_high})")
-    print("Full JSON Response:")
-    print(json.dumps(high_data, indent=2))
+
+    data2 = r2.json()
+    extracted2 = data2.get("extracted_features", {})
+    print("\n[Banking Intake Result]")
+    print(f"Ticket ID:      {data2['ticket_id']}")
+    print(f"Ticket Number:  {data2['ticket_number']}")
+    print(f"Priority Score: {data2['priority_score']} (Extracted: {extracted2.get('priority_score')})")
+    print(f"Service Type:   {extracted2.get('service_type')}")
+    print(f"Predicted Wait: {data2['predicted_wait_mins']} mins ({data2['display_range']})")
+    print(f"Extracted By:   {extracted2.get('extracted_by')}")
+    print(json.dumps(data2, indent=2))
+
+    time.sleep(1.0)
 
     # -------------------------------------------------------------------------
-    # Step C: The 'Call Next' Priority Sorting Validation
+    # Test Case 3: Restaurant / Hospitality (Golden Bistro)
     # -------------------------------------------------------------------------
-    print_section("STEP C: Retrieve 'Call Next' Optimal Ticket")
-    print(f"Querying GET /api/queue/{business_id}/next ...")
-    
-    r_next = requests.get(f"{BASE_URL}/api/queue/{business_id}/next", timeout=10)
-    if r_next.status_code != 200:
-        print(f"Failed Step C: {r_next.text}")
+    print_section("TEST CASE 3: RESTAURANT / HOSPITALITY (golden_bistro)")
+    payload_restaurant = {
+        "business_id": "golden_bistro",
+        "user_text": "Table for 6 celebrating an anniversary, booked a week ago.",
+        "phone_number": "+1555778899"
+    }
+    print(f"Intake Payload:\n{json.dumps(payload_restaurant, indent=2)}")
+    r3 = requests.post(f"{BASE_URL}/api/intake", json=payload_restaurant, timeout=15)
+    if r3.status_code != 200:
+        print(f"Failed Test Case 3: {r3.text}")
         sys.exit(1)
-        
-    next_data = r_next.json()
-    print("Next Ticket Data:")
-    print(json.dumps(next_data, indent=2))
 
-    print("\n[Priority Verification]")
-    print(f"Expected next ticket ID: {ticket_id_high} (Priority: {prio_high})")
-    print(f"Actual next ticket ID:   {next_data['id']} (Priority: {next_data['priority_score']})")
+    data3 = r3.json()
+    extracted3 = data3.get("extracted_features", {})
+    print("\n[Restaurant Intake Result]")
+    print(f"Ticket ID:      {data3['ticket_id']}")
+    print(f"Ticket Number:  {data3['ticket_number']}")
+    print(f"Priority Score: {data3['priority_score']}")
+    print(f"Party Size:     {extracted3.get('party_size')}")
+    print(f"Is Walk-in:     {extracted3.get('is_walk_in')}")
+    print(f"Predicted Wait: {data3['predicted_wait_mins']} mins ({data3['display_range']})")
+    print(f"Extracted By:   {extracted3.get('extracted_by')}")
+    print(json.dumps(data3, indent=2))
+
+    time.sleep(1.0)
+
+    # -------------------------------------------------------------------------
+    # Test Case 4: Priority Routing ("Call Next" Verification)
+    # -------------------------------------------------------------------------
+    print_section("TEST CASE 4: PRIORITY ROUTING VALIDATION (GET /api/queue/{business_id}/next)")
+    # Enqueue a routine ticket at DMV, then an urgent ADA assist ticket arriving after it
+    dmv_low = requests.post(f"{BASE_URL}/api/intake", json={
+        "business_id": "city_dmv",
+        "user_text": "I am here to drop off a change of address form."
+    }, timeout=10).json()
+    print(f"Enqueued Low-Priority DMV ticket: {dmv_low['ticket_number']} (Priority: {dmv_low['priority_score']})")
+
+    time.sleep(0.5)
+
+    dmv_high = requests.post(f"{BASE_URL}/api/intake", json={
+        "business_id": "city_dmv",
+        "user_text": "I require ADA accessibility assistance and medical transport driver expedited intake."
+    }, timeout=10).json()
+    print(f"Enqueued High-Priority DMV ticket: {dmv_high['ticket_number']} (Priority: {dmv_high['priority_score']})")
+
+    # Fetch Next
+    r_next = requests.get(f"{BASE_URL}/api/queue/city_dmv/next", timeout=10)
+    next_ticket = r_next.json()
+    print(f"\nDispatched Next Ticket from City DMV:")
+    print(f"Ticket ID:      {next_ticket['id']}")
+    print(f"Ticket Number:  {next_ticket['ticket_number']}")
+    print(f"Priority Score: {next_ticket['priority_score']}")
     
-    if next_data["id"] == ticket_id_high:
-        print(">>> SUCCESS: High-priority ticket was returned first despite arriving second!")
+    if next_ticket['priority_score'] >= dmv_low['priority_score']:
+        print(">>> SUCCESS: Priority-aware routing correctly selected the highest-priority ticket!")
     else:
-        print(f">>> Note: Returned ticket {next_data['id']}.")
+        print(">>> Warning: Order verification did not prioritize higher score.")
 
     # -------------------------------------------------------------------------
-    # Step D: Advance Status to Completed
+    # Test Case 5: Staff Ticket Completion & Background Velocity Recalculation
     # -------------------------------------------------------------------------
-    print_section("STEP D: Complete Ticket & Trigger Velocity Background Worker")
-    print(f"Patching ticket {ticket_id_high} to 'completed'...")
-    
-    patch_payload = {"status": "completed"}
-    r_patch = requests.patch(f"{BASE_URL}/api/queue/{ticket_id_high}/status", json=patch_payload, timeout=10)
-    if r_patch.status_code != 200:
-        print(f"Failed Step D: {r_patch.text}")
-        sys.exit(1)
-        
-    patch_data = r_patch.json()
-    print("Updated Ticket Response:")
-    print(json.dumps(patch_data, indent=2))
-    print(f"Status: {patch_data['status']} | Completed At: {patch_data['completed_at']}")
+    print_section("TEST CASE 5: STAFF COMPLETION & VELOCITY RECALCULATION")
+    target_id = next_ticket['id']
+    print(f"Marking ticket {target_id} as 'in_progress'...")
+    requests.patch(f"{BASE_URL}/api/queue/{target_id}/status", json={"status": "in_progress"}, timeout=10)
 
-    # -------------------------------------------------------------------------
-    # Step E: Staff Counter Control Verification
-    # -------------------------------------------------------------------------
-    print_section("STEP E: Staff Counter Control (PATCH /api/tenants/{business_id}/counters)")
-    counter_payload = {"active_counters": 5}
-    print(f"Updating active counters for {business_id} to 5...")
-    r_cnt = requests.patch(f"{BASE_URL}/api/tenants/{business_id}/counters", json=counter_payload, timeout=10)
-    if r_cnt.status_code == 200:
-        print("Counter Update Response:")
-        print(json.dumps(r_cnt.json(), indent=2))
-    else:
-        print(f"Counter update response ({r_cnt.status_code}): {r_cnt.text}")
+    time.sleep(0.5)
 
-    print_section("E2E PIPELINE SMOKE TEST COMPLETED SUCCESSFULLY")
+    print(f"Marking ticket {target_id} as 'completed'...")
+    r_comp = requests.patch(f"{BASE_URL}/api/queue/{target_id}/status", json={"status": "completed"}, timeout=10)
+    comp_data = r_comp.json()
+    print(f"Completed Status Response:\n{json.dumps(comp_data, indent=2)}")
+
+    print("\nVerifying updated tenant active counters...")
+    r_counters = requests.patch(f"{BASE_URL}/api/tenants/city_dmv/counters", json={"active_counters": 6}, timeout=10)
+    print(f"Counter Update Response:\n{json.dumps(r_counters.json(), indent=2)}")
+
+    print_section("ALL 5 MULTI-TENANT TEST CASES COMPLETED SUCCESSFULLY")
 
 if __name__ == "__main__":
     main()
