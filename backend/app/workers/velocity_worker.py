@@ -3,7 +3,7 @@ import logging
 from collections import deque
 from threading import Lock
 from typing import Dict, Any, Optional
-from app.database import get_supabase_client, in_memory_queue
+from app.database import get_supabase, in_memory_queue
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +68,7 @@ def recalculate_rolling_velocity(business_id: str):
     FastAPI Background Worker: queries last 5 completed entries from Supabase
     (or memory fallback) and updates the in-memory rolling velocity cache.
     """
-    client = get_supabase_client()
+    client = get_supabase()
     if client:
         try:
             resp = client.table("queue_entries") \
@@ -100,7 +100,12 @@ def recalculate_rolling_velocity(business_id: str):
             e for e in in_memory_queue.values()
             if e.get("business_id") == business_id and e.get("status") == "completed" and e.get("served_at") and e.get("completed_at")
         ]
-        completed.sort(key=lambda x: x["completed_at"], reverse=True)
         for e in completed[:5]:
-            delta = max(0.5, (e["completed_at"] - e["served_at"]).total_seconds() / 60.0)
-            velocity_tracker.record_completion_duration(business_id, delta)
+            try:
+                from datetime import datetime
+                t_comp = e["completed_at"] if isinstance(e["completed_at"], datetime) else datetime.fromisoformat(str(e["completed_at"]).replace("Z", "+00:00"))
+                t_serv = e["served_at"] if isinstance(e["served_at"], datetime) else datetime.fromisoformat(str(e["served_at"]).replace("Z", "+00:00"))
+                delta = max(0.5, (t_comp - t_serv).total_seconds() / 60.0)
+                velocity_tracker.record_completion_duration(business_id, delta)
+            except Exception as e_err:
+                logger.warning(f"[velocity_worker] Delta calculation error: {e_err}")

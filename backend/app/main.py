@@ -1,13 +1,13 @@
 import uuid
 from datetime import datetime
 from contextlib import asynccontextmanager
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 
-from fastapi import FastAPI, BackgroundTasks, HTTPException, Request, Path as FastPath
+from fastapi import FastAPI, BackgroundTasks, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.database import get_supabase_client, in_memory_tenants, in_memory_queue
+from app.database import get_supabase, in_memory_tenants, in_memory_queue
 from app.schemas.intake import IntakeRequest, IntakeResponse
 from app.schemas.queue import (
     StatusUpdateRequest,
@@ -22,7 +22,7 @@ from app.workers.velocity_worker import velocity_tracker, recalculate_rolling_ve
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Cold-start model load
+    # Cold-start single model loading
     model_file = settings.resolved_model_path
     loaded = ml_predictor.load_model(model_file)
     app.state.ml_model = ml_predictor.model
@@ -44,55 +44,83 @@ app.add_middleware(
 )
 
 # -----------------------------------------------------------------------------
+# Helper Functions: Database Operations
+# -----------------------------------------------------------------------------
+def get_live_queue_count(tenant_id: Optional[str], business_id: str) -> int:
+    """
+    Step 2: Get Live Queue Count
+    Target Table: queue_entries
+    Condition: .eq("status", "waiting") and .eq("tenant_id", tenant_id)
+    Count Option: .select("id", count="exact")
+    """
+    client = get_supabase()
+    if client:
+        try:
+            query = client.table("queue_entries").select("id", count="exact").eq("status", "waiting")
+            if tenant_id:
+                query = query.eq("tenant_id", tenant_id)
+            else:
+                query = query.eq("business_id", business_id)
+            
+            res = query.execute()
+            if res.count is not None:
+                return res.count
+            return len(res.data or [])
+        except Exception as e:
+            # Fallback to local memory count
+            pass
+
+    # In-memory count fallback
+    matching = [
+        e for e in in_memory_queue.values()
+        if e.get("status") == "waiting" and (e.get("tenant_id") == tenant_id or e.get("business_id") == business_id)
+    ]
+    return len(matching)
+
+
+# -----------------------------------------------------------------------------
 # Endpoint 1: Intake & Triage Pipeline (POST /api/intake)
 # -----------------------------------------------------------------------------
 @app.post("/api/intake", response_model=IntakeResponse)
-async def intake_customer(payload: IntakeRequest, background_tasks: BackgroundTasks) -> IntakeResponse:
+def intake_customer(payload: IntakeRequest, background_tasks: BackgroundTasks) -> IntakeResponse:
     # 1. Record arrival timestamp
     velocity_tracker.record_arrival(payload.business_id)
 
     # 2. Tenant Lookup (Supabase or In-Memory fallback)
-    supabase = get_supabase_client()
+    client = get_supabase()
     tenant_data = None
-    if supabase:
+    tenant_id = None
+
+    if client:
         try:
-            res = supabase.table("tenants").select("*").eq("business_id", payload.business_id).single().execute()
+            res = client.table("tenants").select("*").eq("business_id", payload.business_id).single().execute()
             if res.data:
                 tenant_data = res.data
+                tenant_id = tenant_data.get("id")
         except Exception:
             tenant_data = None
 
     if not tenant_data:
         tenant_data = in_memory_tenants.get(payload.business_id, {
+            "id": str(uuid.uuid4()),
             "business_id": payload.business_id,
             "industry": "General Services",
             "ai_persona": "customer service intake desk",
             "active_counters": settings.DEFAULT_ACTIVE_COUNTERS,
-            "base_service_time": settings.DEFAULT_SERVICE_TIME_MIN
+            "base_service_time_mins": settings.DEFAULT_SERVICE_TIME_MIN
         })
+        tenant_id = tenant_data.get("id")
 
     active_counters = tenant_data.get("active_counters", settings.DEFAULT_ACTIVE_COUNTERS)
-    base_service_time = tenant_data.get("base_service_time", settings.DEFAULT_SERVICE_TIME_MIN)
+    base_service_time = tenant_data.get("base_service_time_mins", settings.DEFAULT_SERVICE_TIME_MIN)
     tenant_persona = tenant_data.get("ai_persona", "general customer service desk")
 
-    # 3. AI Intent Triage (Gemini Structured Outputs with resilient fallback)
+    # 3. AI Intent Triage (3-Tier Gemini -> Groq -> Hardcoded)
     extracted_features = parse_user_intent(payload.user_text, tenant_persona)
     priority_score = extracted_features.get("priority_score", 1)
 
-    # 4. Live Queue State
-    live_queue_count = 0
-    if supabase:
-        try:
-            q_res = supabase.table("queue_entries") \
-                .select("id", count="exact") \
-                .eq("business_id", payload.business_id) \
-                .eq("status", "waiting") \
-                .execute()
-            live_queue_count = q_res.count if q_res.count is not None else len(q_res.data or [])
-        except Exception:
-            live_queue_count = len([e for e in in_memory_queue.values() if e.get("business_id") == payload.business_id and e.get("status") == "waiting"])
-    else:
-        live_queue_count = len([e for e in in_memory_queue.values() if e.get("business_id") == payload.business_id and e.get("status") == "waiting"])
+    # 4. Live Queue Count using .select("id", count="exact")
+    live_queue_count = get_live_queue_count(tenant_id, payload.business_id)
 
     # 5. Deterministic Queuing Theory Baseline (M/M/c Erlang-C + Positional Model)
     rolling_velocity = velocity_tracker.get_rolling_velocity(payload.business_id, default_val=base_service_time)
@@ -124,33 +152,44 @@ async def intake_customer(payload: IntakeRequest, background_tasks: BackgroundTa
 
     predicted_wait, display_range, rel_err = ml_predictor.predict(ml_features, baseline_mins)
 
-    # 7. DB Persistence
+    # 7. Step 3: Insert Ticket Row into Supabase queue_entries
     ticket_id = str(uuid.uuid4())
     ticket_num = f"T-{now.strftime('%H%M%S')}-{live_queue_count + 1:02d}"
 
-    entry_data = {
-        "id": ticket_id,
+    insert_dict = {
+        "tenant_id": tenant_id,
         "business_id": payload.business_id,
         "ticket_number": ticket_num,
         "phone_number": payload.phone_number,
         "priority_score": priority_score,
         "predicted_wait_mins": predicted_wait,
-        "display_range": display_range,
-        "status": "waiting",
-        "served_at": None,
-        "completed_at": None,
-        "created_at": now.isoformat()
+        "display_range": display_range
     }
 
-    if supabase:
+    inserted_record = None
+    if client:
         try:
-            supabase.table("queue_entries").insert(entry_data).execute()
-        except Exception:
-            in_memory_queue[ticket_id] = {**entry_data, "created_at": now}
+            insert_res = client.table("queue_entries").insert(insert_dict).execute()
+            if insert_res.data:
+                inserted_record = insert_res.data[0]
+                ticket_id = str(inserted_record.get("id", ticket_id))
+        except Exception as insert_err:
+            # If Supabase insert fails, save in memory fallback so request succeeds
+            in_memory_queue[ticket_id] = {
+                "id": ticket_id,
+                **insert_dict,
+                "status": "waiting",
+                "created_at": now
+            }
     else:
-        in_memory_queue[ticket_id] = {**entry_data, "created_at": now}
+        in_memory_queue[ticket_id] = {
+            "id": ticket_id,
+            **insert_dict,
+            "status": "waiting",
+            "created_at": now
+        }
 
-    # 8. Background Task Offloading
+    # 8. Background Velocity Recalculation
     background_tasks.add_task(recalculate_rolling_velocity, payload.business_id)
 
     return IntakeResponse(
@@ -165,85 +204,90 @@ async def intake_customer(payload: IntakeRequest, background_tasks: BackgroundTa
         created_at=now
     )
 
+
 # -----------------------------------------------------------------------------
 # Endpoint 2: Ticket Status & Staff Advance (PATCH /api/queue/{ticket_id}/status)
 # -----------------------------------------------------------------------------
 @app.patch("/api/queue/{ticket_id}/status", response_model=QueueEntrySchema)
-async def update_ticket_status(
+def update_ticket_status(
     ticket_id: str,
     payload: StatusUpdateRequest,
     background_tasks: BackgroundTasks
 ):
+    """
+    Step 4: Update Ticket Status Endpoint
+    Allows staff to advance a ticket.
+    Valid statuses: 'in_progress', 'completed', 'cancelled', 'no_show'.
+    """
+    valid_statuses = {"waiting", "in_progress", "completed", "cancelled", "no_show"}
+    if payload.status not in valid_statuses:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid status '{payload.status}'. Must be one of: {list(valid_statuses)}"
+        )
+
     now = datetime.now()
-    supabase = get_supabase_client()
-    existing_entry = None
+    client = get_supabase()
+    update_data: Dict[str, Any] = {"status": payload.status}
+
+    if payload.status == "in_progress":
+        update_data["served_at"] = now.isoformat()
+    elif payload.status == "completed":
+        update_data["completed_at"] = now.isoformat()
+
+    updated_row = None
     business_id = "default"
 
-    if supabase:
+    if client:
         try:
-            fetch_res = supabase.table("queue_entries").select("*").eq("id", ticket_id).single().execute()
-            if fetch_res.data:
-                existing_entry = fetch_res.data
-                business_id = existing_entry.get("business_id", "default")
-        except Exception:
-            existing_entry = in_memory_queue.get(ticket_id)
-    else:
-        existing_entry = in_memory_queue.get(ticket_id)
-
-    if not existing_entry:
-        raise HTTPException(status_code=404, detail="Ticket not found")
-
-    update_fields = {"status": payload.status}
-    if payload.status == "in_progress" and not existing_entry.get("served_at"):
-        update_fields["served_at"] = now.isoformat()
-    elif payload.status == "completed":
-        update_fields["completed_at"] = now.isoformat()
-        if not existing_entry.get("served_at"):
-            # If served_at wasn't previously logged, approximate served time
-            update_fields["served_at"] = existing_entry.get("created_at")
-
-    if supabase:
-        try:
-            update_res = supabase.table("queue_entries").update(update_fields).eq("id", ticket_id).execute()
-            if update_res.data:
+            update_res = client.table("queue_entries").update(update_data).eq("id", ticket_id).execute()
+            if update_res.data and len(update_res.data) > 0:
                 updated_row = update_res.data[0]
+                business_id = updated_row.get("business_id", "default")
             else:
-                updated_row = {**existing_entry, **update_fields}
-        except Exception:
-            in_memory_queue[ticket_id] = {**existing_entry, **update_fields}
-            updated_row = in_memory_queue[ticket_id]
+                raise HTTPException(status_code=404, detail=f"Ticket '{ticket_id}' not found.")
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Supabase update error: {str(e)}")
     else:
-        in_memory_queue[ticket_id] = {**existing_entry, **update_fields}
+        # Check in-memory store
+        if ticket_id not in in_memory_queue:
+            raise HTTPException(status_code=404, detail=f"Ticket '{ticket_id}' not found.")
+        
+        in_memory_queue[ticket_id].update(update_data)
         updated_row = in_memory_queue[ticket_id]
+        business_id = updated_row.get("business_id", "default")
 
     if payload.status == "completed":
         background_tasks.add_task(recalculate_rolling_velocity, business_id)
 
     return QueueEntrySchema(
-        id=updated_row["id"],
-        business_id=updated_row["business_id"],
-        ticket_number=updated_row["ticket_number"],
+        id=str(updated_row["id"]),
+        business_id=updated_row.get("business_id", business_id),
+        ticket_number=updated_row.get("ticket_number", ""),
         phone_number=updated_row.get("phone_number"),
-        priority_score=updated_row["priority_score"],
-        predicted_wait_mins=updated_row["predicted_wait_mins"],
-        display_range=updated_row["display_range"],
+        priority_score=updated_row.get("priority_score", 1),
+        predicted_wait_mins=updated_row.get("predicted_wait_mins", 2.0),
+        display_range=updated_row.get("display_range", "2 – 3 mins"),
         status=updated_row["status"],
         served_at=datetime.fromisoformat(updated_row["served_at"].replace("Z", "+00:00")) if isinstance(updated_row.get("served_at"), str) else updated_row.get("served_at"),
         completed_at=datetime.fromisoformat(updated_row["completed_at"].replace("Z", "+00:00")) if isinstance(updated_row.get("completed_at"), str) else updated_row.get("completed_at"),
-        created_at=datetime.fromisoformat(updated_row["created_at"].replace("Z", "+00:00")) if isinstance(updated_row.get("created_at"), str) else updated_row["created_at"]
+        created_at=datetime.fromisoformat(updated_row["created_at"].replace("Z", "+00:00")) if isinstance(updated_row.get("created_at"), str) else updated_row.get("created_at", now)
     )
+
 
 # -----------------------------------------------------------------------------
 # Endpoint 3: Active Queue Snapshot (GET /api/queue/{business_id})
 # -----------------------------------------------------------------------------
 @app.get("/api/queue/{business_id}", response_model=QueueSnapshotResponse)
-async def get_queue_snapshot(business_id: str):
-    supabase = get_supabase_client()
+def get_queue_snapshot(business_id: str):
+    client = get_supabase()
     entries_list = []
-    
-    if supabase:
+
+    if client:
         try:
-            res = supabase.table("queue_entries") \
+            res = client.table("queue_entries") \
                 .select("*") \
                 .eq("business_id", business_id) \
                 .eq("status", "waiting") \
@@ -259,10 +303,10 @@ async def get_queue_snapshot(business_id: str):
     # Tenant metadata
     tenant = in_memory_tenants.get(business_id, {
         "active_counters": settings.DEFAULT_ACTIVE_COUNTERS,
-        "base_service_time": settings.DEFAULT_SERVICE_TIME_MIN
+        "base_service_time_mins": settings.DEFAULT_SERVICE_TIME_MIN
     })
     active_c = tenant.get("active_counters", settings.DEFAULT_ACTIVE_COUNTERS)
-    rolling_vel = velocity_tracker.get_rolling_velocity(business_id, default_val=tenant.get("base_service_time", 12.0))
+    rolling_vel = velocity_tracker.get_rolling_velocity(business_id, default_val=tenant.get("base_service_time_mins", 12.0))
     lam = velocity_tracker.get_arrival_rate(business_id)
     mu = 1.0 / max(0.5, rolling_vel)
     rho = round(lam / (active_c * mu), 3)
@@ -270,17 +314,17 @@ async def get_queue_snapshot(business_id: str):
     formatted_entries = []
     for row in entries_list:
         formatted_entries.append(QueueEntrySchema(
-            id=row["id"],
-            business_id=row["business_id"],
-            ticket_number=row["ticket_number"],
+            id=str(row["id"]),
+            business_id=row.get("business_id", business_id),
+            ticket_number=row.get("ticket_number", ""),
             phone_number=row.get("phone_number"),
-            priority_score=row["priority_score"],
-            predicted_wait_mins=row["predicted_wait_mins"],
-            display_range=row["display_range"],
-            status=row["status"],
+            priority_score=row.get("priority_score", 1),
+            predicted_wait_mins=row.get("predicted_wait_mins", 2.0),
+            display_range=row.get("display_range", "2 – 3 mins"),
+            status=row.get("status", "waiting"),
             served_at=datetime.fromisoformat(row["served_at"].replace("Z", "+00:00")) if isinstance(row.get("served_at"), str) else row.get("served_at"),
             completed_at=datetime.fromisoformat(row["completed_at"].replace("Z", "+00:00")) if isinstance(row.get("completed_at"), str) else row.get("completed_at"),
-            created_at=datetime.fromisoformat(row["created_at"].replace("Z", "+00:00")) if isinstance(row.get("created_at"), str) else row["created_at"]
+            created_at=datetime.fromisoformat(row["created_at"].replace("Z", "+00:00")) if isinstance(row.get("created_at"), str) else row.get("created_at", datetime.now())
         ))
 
     return QueueSnapshotResponse(
@@ -293,16 +337,17 @@ async def get_queue_snapshot(business_id: str):
         queue_entries=formatted_entries
     )
 
+
 # -----------------------------------------------------------------------------
 # Endpoint 4: System Health & Fallback Probe (GET /api/health)
 # -----------------------------------------------------------------------------
 @app.get("/api/health", response_model=HealthCheckResponse)
-async def health_check():
-    supabase = get_supabase_client()
+def health_check():
+    client = get_supabase()
     db_connected = False
-    if supabase:
+    if client:
         try:
-            supabase.table("tenants").select("id").limit(1).execute()
+            client.table("tenants").select("id").limit(1).execute()
             db_connected = True
         except Exception:
             db_connected = False
@@ -314,6 +359,6 @@ async def health_check():
         status="ok",
         database_connected=db_connected,
         ml_model_loaded=ml_predictor.is_loaded,
-        gemini_api_ready=gemini_ready,
+        gemini_api_ready=gemini_ready or groq_ready,
         timestamp=datetime.now()
     )
