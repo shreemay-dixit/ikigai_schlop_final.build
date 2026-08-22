@@ -1,158 +1,251 @@
-# Smart Queue Intelligence & Hybrid Wait Prediction Architecture
+# ⚡ Smart Queue Intelligence Platform
 
-An end-to-end intelligent queue management platform combining **Classical Queuing Mathematics ($M/M/c$ Erlang-C & Positional Models)**, **Gemini 2.5 Flash Structured Triage**, and a **Residual Random Forest Regression Engine** with Supabase integration and real-time Explainable AI (XAI).
+An enterprise-grade, hybrid intelligent queue management and wait-time prediction platform combining **Classical Queuing Mathematics ($M/M/c$ Erlang-C & Positional Models)**, a **3-Tier Resilient AI Intent Parser (Gemini 2.5 Flash $\to$ Groq Llama 3.3 70B $\to$ Hardcoded Safety Net)**, and a **Residual Random Forest Regression Engine with Tree-Variance Bounds**.
 
 ---
 
-## 1. System Architecture & Directory Structure
+## 📸 System Visuals & Flow Architecture
+
+### 1. Hybrid Wait Prediction & Triage Pipeline
+
+```
++-----------------------------------------------------------------------------------------------+
+|                                      CUSTOMER INTAKE                                          |
+|                       "My child has a severe fever and is struggling to breathe"              |
++-----------------------------------------------------------------------------------------------+
+                                                │
+                                                ▼
++───────────────────────────────────────────────────────────────────────────────────────────────+
+|                       3-TIER RESILIENT AI TRIAGE ENGINE (ai_engine.py)                        |
+|                                                                                               |
+|   [Tier 1: Primary]    ──► Google Gemini 2.5 Flash (Structured Outputs with Pydantic)         |
+|         │ (on error/timeout)                                                                  |
+|   [Tier 2: Fallback]   ──► Groq Llama 3.3 70B Versatile (JSON Mode with Schema Injection)     |
+|         │ (on error/timeout)                                                                  |
+|   [Tier 3: Safety Net] ──► Deterministic Hardcoded Baseline Defaults                          |
+|                                                                                               |
+|   Output: { service_type: 2, priority_score: 5, is_walk_in: 1, party_size: 2, age_bracket: 0 }  |
++───────────────────────────────────────────────────────────────────────────────────────────────+
+                                                │
+                                                ▼
++───────────────────────────────────────────────────────────────────────────────────────────────+
+|               DETERMINISTIC QUEUING THEORY ANCHOR (queuing_math.py)                          |
+|                                                                                               |
+|   1. Instantaneous Positional:  W_pos = (N_ahead / c) * S_rolling * K_priority                |
+|   2. Steady-State Erlang-C:     W_q = P_C / (c*mu - lambda)  [M/M/c Multi-Server Queue]       |
+|   3. Hybrid Baseline:           Baseline = max(2.0, 0.70 * W_pos + 0.30 * W_q)                |
++───────────────────────────────────────────────────────────────────────────────────────────────+
+                                                │
+                                                ▼
++───────────────────────────────────────────────────────────────────────────────────────────────+
+|               RESIDUAL RANDOM FOREST REGRESSION ENGINE (ml_predictor.py)                      |
+|                                                                                               |
+|   Input Vector: [service_type, priority_score, is_walk_in, party_size, age_bracket,           |
+|                  queue_length_ahead, active_counters, rolling_velocity, queuing_baseline]     |
+|                                                                                               |
+|   Inference:    Random Forest Residual Estimation (5-Fold CV MAE: 1.58 min)                   |
+|   Tree-Variance:[Estimator Trees 1..100] ──► Mean & StdDev ──► Bounds [Lower, Upper]          |
++───────────────────────────────────────────────────────────────────────────────────────────────+
+                                                │
+                                                ▼
++───────────────────────────────────────────────────────────────────────────────────────────────+
+|                         PERSISTENCE & REAL-TIME WEBSOCKETS (Supabase)                         |
+|                                                                                               |
+|   • Insert Ticket into public.queue_entries                                                   |
+|   • Supabase Realtime Broadcasts New Ticket to Dashboard                                      |
+|   • Return: { ticket_id, ticket_number, priority: 5, wait: "Under 5 mins", range: "2-4 min" } |
++───────────────────────────────────────────────────────────────────────────────────────────────+
+```
+
+### 2. Real-Time Staff Queue Management & Adaptive Velocity Loop
+
+```
++───────────────────────────────────────────────────────────────────────────────────────────────+
+|                                  STAFF QUEUE CONTROLS                                         |
+|                                                                                               |
+|   [Call Next Button] ──► GET /api/queue/{business_id}/next                                    |
+|                          • Sorted by: priority_score DESC, created_at ASC                     |
+|                          • Triage 5s immediately jump ahead of routine tickets                |
+|                                                                                               |
+|   [Counter Controls] ──► PATCH /api/tenants/{business_id}/counters                            |
+|                          • Dynamically add/remove service windows (c = 1, 2, ..., N)          |
+|                                                                                               |
+|   [Complete Ticket]  ──► PATCH /api/queue/{ticket_id}/status {"status": "completed"}          |
+|                          │                                                                    |
+|                          ▼ (FastAPI Background Task)                                          |
+|                          recalculate_rolling_velocity(business_id)                            |
+|                          • Queries last 5 completed ticket durations                          |
+|                          • Clamps mean to [2.0, 45.0] minutes                                 |
+|                          • UPDATE tenants SET base_service_time_mins = {clamped_mean}         |
++───────────────────────────────────────────────────────────────────────────────────────────────+
+```
+
+---
+
+## 📁 Repository Structure
 
 ```
 ├── backend/
 │   ├── app/
-│   │   ├── main.py                  # FastAPI app factory, lifespan cold-start loader & API endpoints
-│   │   ├── config.py                # Environment variables via pydantic-settings
-│   │   ├── database.py              # Supabase client singleton with connection pooling & offline fallback
+│   │   ├── main.py                  # FastAPI app, lifespan model loader, and master API routes
+│   │   ├── config.py                # Environment configuration via pydantic-settings
+│   │   ├── database.py              # Supabase singleton client with offline in-memory fallback
 │   │   ├── schemas/
-│   │   │   ├── intake.py            # Intake request/response schemas
-│   │   │   └── queue.py             # Queue snapshots, status updates & health probes
+│   │   │   ├── intake.py            # Intake request/response Pydantic schemas
+│   │   │   └── queue.py             # Queue snapshots, status updates, health schemas
 │   │   ├── services/
-│   │   │   ├── ai_engine.py         # Google Gemini 2.5 Flash structured triage parser
-│   │   │   ├── ml_predictor.py      # Random Forest residual predictor & tree-variance estimator
-│   │   │   └── queuing_math.py      # M/M/c Erlang-C & Positional mathematical engine
+│   │   │   ├── ai_engine.py         # 3-Tier AI Triage (Gemini 2.5 Flash -> Groq -> Safety Net)
+│   │   │   ├── ml_predictor.py      # Random forest inference & tree-variance range estimator
+│   │   │   ├── ml_evaluator.py      # Weighted Absolute Percentage Error (WAPE) metric engine
+│   │   │   └── queuing_math.py      # M/M/c Erlang-C & Positional Queuing Mathematics engine
 │   │   └── workers/
-│   │       └── velocity_worker.py   # FastAPI background workers for rolling rate tracking
+│   │       └── velocity_worker.py   # Background worker for rolling velocity recalculation
 │   ├── models/
-│   │   └── wait_predictor_cv.pkl    # Pre-trained Random Forest regression artifact
-│   ├── requirements.txt             # Pinned core dependencies
-│   └── .env                         # Environment variables configuration
+│   │   └── wait_predictor_cv.pkl    # Pre-trained Scikit-Learn Random Forest artifact
+│   ├── supabase_schema.sql          # PostgreSQL DDL with Realtime subscriptions & seed data
+│   ├── requirements.txt             # Pinned backend dependencies
+│   └── .env                         # Backend environment variables
 │
 ├── frontend/
-│   ├── index.html                   # Dashboard with Natural LLM and Manual Intake tabs
-│   ├── style.css                    # Glassmorphic dark-mode interface with XAI breakdowns
-│   └── app.js                       # API client controller
+│   ├── index.html                   # Interactive glassmorphic operations dashboard
+│   ├── style.css                    # Dark mode responsive CSS tokens
+│   └── app.js                       # Frontend client controller & real-time polling
 │
 ├── ml/
-│   ├── data/
-│   │   ├── synthetic_queue_training_data.csv
-│   │   └── clean_queue_data.csv
-│   ├── models/
-│   │   └── wait_predictor_cv.pkl
+│   ├── data/                        # Training datasets
 │   ├── data_generator.py            # Synthetic queue dataset generator with queuing baselines
-│   └── train.py                     # 5-Fold cross-validation & model trainer
+│   └── train.py                     # 5-Fold cross-validation trainer
 │
-└── README.md                        # Complete project documentation
+├── test_pipeline.py                 # Standalone E2E smoke test script
+└── README.md                        # Documentation
 ```
 
 ---
 
-## 2. Core Mathematical & AI Architecture
+## 🚀 Step-by-Step Setup & Usage
 
-### A. Discrete Positional Model (Instantaneous Snapshot)
-Calculates immediate clearance time for customer at position $N_{\text{ahead}}$:
-$$W_{\text{positional}} = \left(\frac{N_{\text{ahead}}}{c}\right) \times \bar{S}_{\text{rolling}} \times K_{\text{priority}}$$
-- $N_{\text{ahead}}$: Active tickets waiting ahead
-- $c$: Active operational counters
-- $\bar{S}_{\text{rolling}}$: Rolling average service duration of completed tickets
-- $K_{\text{priority}} = \max(0.25, 1.0 - (\text{priority\_score} - 1) \times 0.15)$
+### 1. Prerequisites
+- Python 3.10+
+- Virtual Environment (`venv` or `conda`)
+- (Optional) Supabase, Google Gemini, and Groq API Keys
 
-### B. Multi-Server Steady-State Model ($M/M/c$ Erlang-C)
-Calculates macro-level system congestion:
-- Arrival Rate ($\lambda$): Arrivals per minute over 15-minute sliding window
-- Service Rate ($\mu$): $\mu = \frac{1}{\bar{S}_{\text{rolling}}}$
-- Offered Load ($a$): $a = \frac{\lambda}{\mu}$
-- Utilization ($\rho$): $\rho = \frac{\lambda}{c \cdot \mu}$
-- Probability of Waiting ($P_C$):
-  $$P_0 = \left[ \sum_{k=0}^{c-1} \frac{a^k}{k!} + \frac{a^c}{c!(1-\rho)} \right]^{-1}, \quad P_C = \frac{a^c}{c!(1-\rho)} P_0$$
-- Expected Queue Wait Time:
-  $$W_q = \frac{P_C}{c\mu - \lambda}$$
-
-### C. Deterministic Queuing Baseline
-$$\text{Baseline} = \max(2.0, 0.70 \cdot W_{\text{positional}} + 0.30 \cdot W_q)$$
-
-### D. Gemini 2.5 Flash Structured Triage
-Uses `google-genai` with strict Pydantic schemas (`QueueIntent`) to parse unstructured user intake text into:
-- `service_type`: `0` (Quick Task), `1` (Standard Consultation), `2` (Complex Procedure)
-- `priority_score`: `1` (Routine) to `5` (Emergency / VIP Triage)
-- `is_walk_in`: `1` (Spontaneous), `0` (Pre-booked)
-- `party_size`: Total individuals
-- `age_bracket`: `0` (Minor), `1` (Adult), `2` (Senior)
-
-### E. Residual Random Forest Regression & Tree Variance
-The Random Forest model learns the human and rush-hour turbulence on top of the deterministic baseline:
-- **5-Fold Cross-Validation MAE**: **1.58 minutes** (reduced from 27.66 min raw baseline MAE).
-- **Adaptive Confidence Intervals**: Derived from tree-variance distributions across all 100 individual estimators.
-
----
-
-## 3. API Endpoints Specification
-
-### 1. Intake & Triage Pipeline (`POST /api/intake`)
-* **Request Body**:
-  ```json
-  {
-    "business_id": "default",
-    "user_text": "I brought my elderly mother for urgent consultation",
-    "phone_number": "+1234567890"
-  }
-  ```
-* **Response Body**:
-  ```json
-  {
-    "ticket_id": "a756feda-540f-41a1-8a76-ba551478f12a",
-    "ticket_number": "T-083940-01",
-    "priority_score": 4,
-    "predicted_wait_mins": 14.5,
-    "display_range": "12 – 17 mins",
-    "relative_error_pct": 8.5,
-    "queuing_theory_baseline_mins": 12.8,
-    "created_at": "2026-08-22T08:39:40.367613"
-  }
-  ```
-
-### 2. Ticket Status & Staff Advance (`PATCH /api/queue/{ticket_id}/status`)
-* **Request Body**: `{"status": "in_progress", "counter_id": "C-1"}` or `{"status": "completed"}`
-* Updates timestamps (`served_at`, `completed_at`) and triggers background task to recalculate rolling service velocity.
-
-### 3. Active Queue Snapshot (`GET /api/queue/{business_id}`)
-* Returns real-time waiting count, active counters, $\lambda$, $\mu$, $\rho$, rolling velocity, and ticket queue.
-
-### 4. Health & Fallback Probe (`GET /api/health`)
-* Returns Supabase connectivity, in-memory ML model state, and Gemini API readiness.
-
----
-
-## 4. Setup & Running Instructions
-
-### 1. Environment Configuration
-Create `backend/.env`:
+### 2. Environment Configuration
+Create or edit `backend/.env`:
 ```env
+# Supabase Configuration
 SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_KEY=your-supabase-anon-or-service-key
+SUPABASE_KEY=your-anon-or-service-role-key
+
+# LLM Providers (Optional - graceful 3-tier fallback if omitted)
 GEMINI_API_KEY=your-gemini-api-key
+GROQ_API_KEY=your-groq-api-key
+
+# Machine Learning Artifact Path
 ML_MODEL_PATH=models/wait_predictor_cv.pkl
+
+# Defaults
+DEFAULT_ACTIVE_COUNTERS=2
+DEFAULT_SERVICE_TIME_MIN=12.0
 ```
 
-### 2. Install Dependencies
+### 3. Install Dependencies
 ```bash
+# Create & activate virtual environment
+python3 -m venv .venv
+source .venv/bin/activate
+
+# Install dependencies
 pip install -r backend/requirements.txt
 ```
 
-### 3. Start Backend Server
+### 4. Supabase Database Setup
+1. Open your **Supabase Dashboard $\to$ SQL Editor**.
+2. Run the script located in [`backend/supabase_schema.sql`](file:///Users/shreemaydixit/Downloads/ikigai_schlop_final.build-main/backend/supabase_schema.sql).
+3. This creates:
+   - `tenants` table with demo seeds (`metro_urgent_care`, `apex_bank_downtown`, `central_dmv_office`).
+   - `queue_entries` table with indexes.
+   - Enables `supabase_realtime` replication for live dashboard updates.
+
+### 5. Run the FastAPI Backend Server
 ```bash
 cd backend
 python -m uvicorn app.main:app --reload --port 8000
 ```
-API Documentation will be available at [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs).
+- Interactive Swagger UI: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+- Health Probe: [http://127.0.0.1:8000/api/health](http://127.0.0.1:8000/api/health)
 
-### 4. Open Frontend Dashboard
-Open `frontend/index.html` in your browser or run:
+### 6. Launch Frontend Dashboard
 ```bash
 python3 -m http.server 3000 --directory frontend
 ```
-Visit [http://127.0.0.1:3000](http://127.0.0.1:3000).
+Visit **[http://127.0.0.1:3000](http://127.0.0.1:3000)** to access the live dashboard.
 
-### 5. Retrain Machine Learning Model
+---
+
+## 🧪 Running the End-to-End Smoke Test
+
+Run the automated smoke test simulating low-priority intake, high-priority emergency walk-ins, priority-based "Call Next" dispatching, ticket lifecycle updates, and counter adjustments:
+
 ```bash
-python3 ml/data_generator.py
-python3 ml/train.py
+python test_pipeline.py
 ```
+
+### Expected Output Summary:
+```plaintext
+======================================================================
+  STEP A: Low-Priority Intake Request
+======================================================================
+Ticket ID: 2d7dee2b-a89d-4788-a64e-eaa7cec612d0
+Priority Score: 1
+Display Range: Under 5 mins
+
+======================================================================
+  STEP B: High-Priority Intake Request (Emergency Walk-In)
+======================================================================
+Ticket ID: d7680918-168f-4551-bb58-63933dd449dc
+Priority Score: 5
+Display Range: Under 5 mins
+
+======================================================================
+  STEP C: Retrieve 'Call Next' Optimal Ticket
+======================================================================
+>>> SUCCESS: High-priority ticket was returned first despite arriving second!
+
+======================================================================
+  STEP D: Complete Ticket & Trigger Velocity Background Worker
+======================================================================
+Status: completed | Completed At: 2026-08-22T13:46:51.191344
+
+======================================================================
+  STEP E: Staff Counter Control (PATCH /api/tenants/{business_id}/counters)
+======================================================================
+Active Counters Updated: 4
+```
+
+---
+
+## 📊 Core API Reference
+
+| Method | Endpoint | Description | Key Payload / Query |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/api/intake` | Master intake, 3-tier triage, hybrid wait inference & ticket creation | `{"business_id": "...", "user_text": "...", "phone_number": "..."}` |
+| `GET` | `/api/queue/{business_id}/next` | Fetches next optimal ticket (`priority DESC`, `created_at ASC`) | Path parameter: `business_id` |
+| `PATCH` | `/api/queue/{ticket_id}/status` | Updates ticket status (`in_progress`, `completed`, `cancelled`) | `{"status": "completed"}` |
+| `PATCH` | `/api/tenants/{business_id}/counters` | Dynamically updates number of operational counters | `{"active_counters": 4}` |
+| `GET` | `/api/queue/{business_id}` | Real-time queue metrics ($\lambda, \mu, \rho$) and active waiting list | Path parameter: `business_id` |
+| `GET` | `/api/health` | System health probe (DB, ML model, AI APIs) | None |
+
+---
+
+## 🔬 Mathematical Formulas Reference
+
+### 1. Discrete Positional Wait
+$$W_{\text{positional}} = \left(\frac{N_{\text{ahead}}}{c}\right) \times \bar{S}_{\text{rolling}} \times K_{\text{priority}}$$
+Where $K_{\text{priority}} = \max(0.25, 1.0 - (\text{priority\_score} - 1) \times 0.15)$.
+
+### 2. Multi-Server Steady-State Erlang-C
+$$P_0 = \left[ \sum_{k=0}^{c-1} \frac{a^k}{k!} + \frac{a^c}{c!(1-\rho)} \right]^{-1}, \quad P_C = \frac{a^c}{c!(1-\rho)} P_0, \quad W_q = \frac{P_C}{c\mu - \lambda}$$
+
+### 3. Weighted Absolute Percentage Error (WAPE)
+$$\text{WAPE} = \frac{\sum |y_{\text{true}} - y_{\text{pred}}|}{\sum y_{\text{true}}} \times 100$$
+Evaluates accuracy across the entire distribution without distortion from low-wait denominators.
