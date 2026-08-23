@@ -55,6 +55,11 @@ node_modules/
 .next/
 out/
 build/
+*.tsbuildinfo
+
+# WhatsApp web session cache
+.wwebjs_auth/
+.wwebjs_cache/
 
 # Misc
 .DS_Store

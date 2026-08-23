@@ -261,6 +261,22 @@ BEGIN
 END;
 $$;
 
+-- Alias: execute_production_claim for backward compatibility
+CREATE OR REPLACE FUNCTION execute_production_claim(
+    p_appointment_id UUID,
+    p_patient_name VARCHAR,
+    p_patient_phone VARCHAR,
+    p_recovery_event_id UUID DEFAULT NULL
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+    RETURN claim_appointment(p_appointment_id, p_patient_name, p_patient_phone, p_recovery_event_id);
+END;
+$$;
+
 -- =============================================================================
 -- 10. Database Trigger: Automatic Waitlist Culling on Slot Recovery
 -- =============================================================================
