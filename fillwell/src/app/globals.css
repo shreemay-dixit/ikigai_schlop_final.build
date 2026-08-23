@@ -4,35 +4,37 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Warmer, soulful base colors */
+    --background: 40 33% 98%; /* warm stone-50 */
+    --foreground: 20 14% 15%; /* warm charcoal */
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 20 14% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 20 14% 15%;
 
-    --primary: 238.7 83.5% 66.7%;
-    --primary-foreground: 210 40% 98%;
+    /* Vibrant, empathetic primary (Rose) */
+    --primary: 346 77% 55%; /* rose-500 */
+    --primary-foreground: 355 100% 97%; /* rose-50 */
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 30 20% 92%;
+    --secondary-foreground: 20 14% 15%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 30 20% 92%;
+    --muted-foreground: 25 5% 45%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 346 77% 55%;
+    --accent-foreground: 355 100% 97%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 238.7 83.5% 66.7%;
+    --border: 30 15% 85%;
+    --input: 30 15% 85%;
+    --ring: 346 77% 55%;
 
-    --radius: 0.5rem;
+    --radius: 1rem; /* Softer, more organic corners */
   }
 }
 
@@ -48,6 +50,14 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Beautiful fluid text gradients */
+.text-gradient-warm {
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-image: linear-gradient(to right, #f43f5e, #fb923c);
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -55,5 +65,5 @@ body {
 ::-webkit-scrollbar-thumb:hover { background: hsl(var(--muted-foreground) / 0.4); }
 
 /* Animate-in utility for page transitions */
-@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
-.animate-page-in { animation: fadeIn 0.3s ease-out; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.animate-page-in { animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
