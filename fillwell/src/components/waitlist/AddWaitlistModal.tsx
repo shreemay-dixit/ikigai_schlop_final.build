@@ -92,24 +92,24 @@ export function AddWaitlistModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto">
-      <div className="w-full max-w-lg rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-2xl my-8">
-        <div className="flex items-center justify-between border-b border-slate-800 pb-4 mb-4">
+      <div className="w-full max-w-lg rounded-2xl border border-stone-800 bg-stone-900 p-6 shadow-2xl my-8">
+        <div className="flex items-center justify-between border-b border-stone-800 pb-4 mb-4">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-600/20 text-indigo-400 border border-indigo-500/30">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-600/20 text-rose-400 border border-rose-500/30">
               <UserPlus className="h-4 w-4" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-slate-100">
+              <h3 className="text-base font-bold text-stone-100">
                 Add Patient to Slot Recovery Waitlist
               </h3>
-              <p className="text-[11px] text-slate-400">
+              <p className="text-[11px] text-stone-400">
                 Auto-dispatched via SMS/WhatsApp upon slot cancellation.
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition"
+            className="p-1 rounded-lg text-stone-400 hover:text-stone-200 hover:bg-stone-800 transition"
           >
             <X className="h-5 w-5" />
           </button>
@@ -118,14 +118,14 @@ export function AddWaitlistModal({
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           {/* Patient Name */}
           <div>
-            <label className="text-xs font-semibold text-slate-300 block mb-1">
+            <label className="text-xs font-semibold text-stone-300 block mb-1">
               Patient Full Name *
             </label>
             <input
               type="text"
               {...register("patient_name")}
               placeholder="e.g. Maria Gonzalez"
-              className="w-full rounded-lg bg-slate-950 border border-slate-800 px-3 py-2 text-xs text-slate-100 outline-none focus:border-indigo-500 transition"
+              className="w-full rounded-lg bg-stone-950 border border-stone-800 px-3 py-2 text-xs text-stone-100 outline-none focus:border-rose-500 transition"
             />
             {errors.patient_name && (
               <p className="text-[11px] text-rose-400 mt-1">
@@ -136,14 +136,14 @@ export function AddWaitlistModal({
 
           {/* Phone Number */}
           <div>
-            <label className="text-xs font-semibold text-slate-300 block mb-1">
+            <label className="text-xs font-semibold text-stone-300 block mb-1">
               Mobile Phone (E.164 Format) *
             </label>
             <input
               type="tel"
               {...register("patient_phone")}
               placeholder="+1 (555) 987-6543"
-              className="w-full rounded-lg bg-slate-950 border border-slate-800 px-3 py-2 text-xs text-slate-100 outline-none focus:border-indigo-500 transition font-mono"
+              className="w-full rounded-lg bg-stone-950 border border-stone-800 px-3 py-2 text-xs text-stone-100 outline-none focus:border-rose-500 transition font-mono"
             />
             {errors.patient_phone && (
               <p className="text-[11px] text-rose-400 mt-1">
@@ -155,12 +155,12 @@ export function AddWaitlistModal({
           {/* Urgency Tier & Preferred Clinician */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-semibold text-slate-300 block mb-1">
+              <label className="text-xs font-semibold text-stone-300 block mb-1">
                 Urgency Priority Tier *
               </label>
               <select
                 {...register("urgency_tier")}
-                className="w-full rounded-lg bg-slate-950 border border-slate-800 px-3 py-2 text-xs text-slate-100 outline-none focus:border-indigo-500"
+                className="w-full rounded-lg bg-stone-950 border border-stone-800 px-3 py-2 text-xs text-stone-100 outline-none focus:border-rose-500"
               >
                 <option value="routine">Routine (Low)</option>
                 <option value="moderate">Moderate (Standard)</option>
@@ -169,12 +169,12 @@ export function AddWaitlistModal({
             </div>
 
             <div>
-              <label className="text-xs font-semibold text-slate-300 block mb-1">
+              <label className="text-xs font-semibold text-stone-300 block mb-1">
                 Assigned Clinician (Optional)
               </label>
               <select
                 {...register("provider_id")}
-                className="w-full rounded-lg bg-slate-950 border border-slate-800 px-3 py-2 text-xs text-slate-100 outline-none focus:border-indigo-500"
+                className="w-full rounded-lg bg-stone-950 border border-stone-800 px-3 py-2 text-xs text-stone-100 outline-none focus:border-rose-500"
               >
                 <option value="">Any Available Clinician</option>
                 {providers.map((p) => (
@@ -188,7 +188,7 @@ export function AddWaitlistModal({
 
           {/* Availability Time Windows */}
           <div>
-            <label className="text-xs font-semibold text-slate-300 block mb-1.5">
+            <label className="text-xs font-semibold text-stone-300 block mb-1.5">
               Preferred Time Windows
             </label>
             <div className="flex gap-2">
@@ -201,8 +201,8 @@ export function AddWaitlistModal({
                     onClick={() => toggleWindow(w)}
                     className={`flex-1 py-1.5 rounded-lg text-xs font-medium capitalize border transition ${
                       active
-                        ? "bg-indigo-600/20 text-indigo-300 border-indigo-500/40"
-                        : "bg-slate-950 text-slate-400 border-slate-800 hover:border-slate-700"
+                        ? "bg-rose-600/20 text-rose-300 border-rose-500/40"
+                        : "bg-stone-950 text-stone-400 border-stone-800 hover:border-stone-700"
                     }`}
                   >
                     {w}
@@ -219,7 +219,7 @@ export function AddWaitlistModal({
 
           {/* Preferred Days */}
           <div>
-            <label className="text-xs font-semibold text-slate-300 block mb-1.5">
+            <label className="text-xs font-semibold text-stone-300 block mb-1.5">
               Available Days
             </label>
             <div className="flex gap-1.5 flex-wrap">
@@ -233,8 +233,8 @@ export function AddWaitlistModal({
                       onClick={() => toggleDay(d)}
                       className={`px-2.5 py-1 rounded-md text-[11px] font-mono capitalize border transition ${
                         active
-                          ? "bg-indigo-600/20 text-indigo-300 border-indigo-500/40"
-                          : "bg-slate-950 text-slate-400 border-slate-800"
+                          ? "bg-rose-600/20 text-rose-300 border-rose-500/40"
+                          : "bg-stone-950 text-stone-400 border-stone-800"
                       }`}
                     >
                       {d.slice(0, 3)}
@@ -247,30 +247,30 @@ export function AddWaitlistModal({
 
           {/* Clinical Notes */}
           <div>
-            <label className="text-xs font-semibold text-slate-300 block mb-1">
+            <label className="text-xs font-semibold text-stone-300 block mb-1">
               Clinical Context / Notes
             </label>
             <textarea
               {...register("notes")}
               placeholder="e.g. Post-op check, severe back pain, requests earliest morning slot."
               rows={2}
-              className="w-full rounded-lg bg-slate-950 border border-slate-800 px-3 py-2 text-xs text-slate-100 outline-none focus:border-indigo-500 resize-none"
+              className="w-full rounded-lg bg-stone-950 border border-stone-800 px-3 py-2 text-xs text-stone-100 outline-none focus:border-rose-500 resize-none"
             />
           </div>
 
           {/* Actions */}
-          <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
+          <div className="flex items-center justify-end gap-3 pt-3 border-t border-stone-800">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300 transition"
+              className="px-4 py-2 rounded-lg bg-stone-800 hover:bg-stone-700 text-xs font-semibold text-stone-300 transition"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold text-white shadow-lg shadow-indigo-600/30 transition disabled:opacity-50"
+              className="px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-xs font-semibold text-white shadow-lg shadow-rose-600/30 transition disabled:opacity-50"
             >
               {isSubmitting ? "Adding..." : "Add to Priority Matrix"}
             </button>

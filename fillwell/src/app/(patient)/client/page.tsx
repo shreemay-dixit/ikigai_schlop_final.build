@@ -238,26 +238,26 @@ export default function ClientCallingPortal() {
   return (
     <div className="max-w-xl mx-auto py-4 space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur-xl shadow-xl">
+      <div className="flex items-center justify-between p-4 rounded-2xl border border-stone-800 bg-stone-900/60 backdrop-blur-xl shadow-xl">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-500 text-white font-bold">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-rose-500 to-purple-500 text-white font-bold">
             <Sparkles className="h-5 w-5" />
           </div>
           <div>
-            <h1 className="text-sm font-bold text-slate-100">Fillwell Client Portal</h1>
-            <p className="text-[11px] text-slate-400">Live Voice AI & Google Calendar Booking</p>
+            <h1 className="text-sm font-bold text-stone-100">Fillwell Client Portal</h1>
+            <p className="text-[11px] text-stone-400">Live Voice AI & Google Calendar Booking</p>
           </div>
         </div>
         <Link
           href="/"
-          className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300 border border-slate-700 transition"
+          className="px-3 py-1.5 rounded-lg bg-stone-800 hover:bg-stone-700 text-xs font-semibold text-stone-300 border border-stone-700 transition"
         >
           Staff Dashboard &rarr;
         </Link>
       </div>
 
       {/* Mode Navigation Tabs */}
-      <div className="grid grid-cols-4 gap-1.5 p-1.5 rounded-xl bg-slate-900/80 border border-slate-800">
+      <div className="grid grid-cols-4 gap-1.5 p-1.5 rounded-xl bg-stone-900/80 border border-stone-800">
         {[
           { id: "voice", label: "Voice Call", icon: Mic },
           { id: "sms", label: "SMS Chat", icon: MessageSquare },
@@ -272,8 +272,8 @@ export default function ClientCallingPortal() {
               onClick={() => setActiveTab(tab.id as any)}
               className={`flex flex-col items-center gap-1 py-2 rounded-lg text-[11px] font-semibold transition ${
                 isActive
-                  ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/20"
-                  : "text-slate-400 hover:text-slate-200"
+                  ? "bg-rose-600 text-white shadow-md shadow-rose-600/20"
+                  : "text-stone-400 hover:text-stone-200"
               }`}
             >
               <Icon className="h-4 w-4" />
@@ -285,13 +285,13 @@ export default function ClientCallingPortal() {
 
       {/* TAB 1: 1-Tap Voice AI Call */}
       {activeTab === "voice" && (
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6 space-y-5 shadow-2xl text-center">
-          <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 flex justify-between items-center text-left">
+        <div className="rounded-2xl border border-stone-800 bg-stone-900/60 p-6 space-y-5 shadow-2xl text-center">
+          <div className="p-3 rounded-xl bg-stone-950 border border-stone-800 flex justify-between items-center text-left">
             <div>
-              <span className="text-[10px] uppercase font-mono text-slate-500 font-bold block">
+              <span className="text-[10px] uppercase font-mono text-stone-500 font-bold block">
                 Direct Phone Line
               </span>
-              <span className="text-sm font-mono font-bold text-indigo-400">
+              <span className="text-sm font-mono font-bold text-rose-400">
                 +1 (800) 555-0199
               </span>
             </div>
@@ -310,17 +310,17 @@ export default function ClientCallingPortal() {
               className={`mx-auto h-28 w-28 rounded-full flex items-center justify-center cursor-pointer transition-all duration-300 border-2 ${
                 isCalling
                   ? "bg-emerald-500/20 border-emerald-400 shadow-[0_0_40px_#10b981] animate-pulse"
-                  : "bg-indigo-500/10 border-indigo-500/30 hover:border-indigo-400"
+                  : "bg-rose-500/10 border-rose-500/30 hover:border-rose-400"
               }`}
             >
-              <Mic className={`h-10 w-10 ${isCalling ? "text-emerald-400" : "text-indigo-400"}`} />
+              <Mic className={`h-10 w-10 ${isCalling ? "text-emerald-400" : "text-rose-400"}`} />
             </div>
 
             <div>
-              <h3 className="text-base font-bold text-slate-100">
+              <h3 className="text-base font-bold text-stone-100">
                 {isCalling ? (isProcessing ? "Gemini Triaging & Syncing..." : "Live with Gemini Voice AI...") : "1-Tap In-Browser Call"}
               </h3>
-              <p className="text-xs text-slate-400 max-w-xs mx-auto mt-1">
+              <p className="text-xs text-stone-400 max-w-xs mx-auto mt-1">
                 {isCalling
                   ? "Speak naturally to book, triage symptoms, or delay a slot."
                   : "Zero downloads. Tap to speak directly with the AI intake agent."}
@@ -329,13 +329,13 @@ export default function ClientCallingPortal() {
           </div>
 
           {/* Transcript Box */}
-          <div className="rounded-xl bg-slate-950 p-4 border border-slate-800 text-left space-y-2 max-h-48 overflow-y-auto">
+          <div className="rounded-xl bg-stone-950 p-4 border border-stone-800 text-left space-y-2 max-h-48 overflow-y-auto">
             {transcript.map((t, idx) => (
               <div key={idx} className="text-xs leading-relaxed">
-                <strong className={t.sender === "ai" ? "text-indigo-400" : "text-cyan-400"}>
+                <strong className={t.sender === "ai" ? "text-rose-400" : "text-cyan-400"}>
                   {t.sender === "ai" ? "🤖 AI Agent: " : "👤 You: "}
                 </strong>
-                <span className="text-slate-200">"{t.text}"</span>
+                <span className="text-stone-200">"{t.text}"</span>
               </div>
             ))}
           </div>
@@ -356,9 +356,9 @@ export default function ClientCallingPortal() {
 
       {/* TAB 2: SMS Chat Assistant */}
       {activeTab === "sms" && (
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 space-y-4 shadow-2xl">
-          <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-            <span className="text-xs font-bold text-slate-200">2-Way SMS Assistant</span>
+        <div className="rounded-2xl border border-stone-800 bg-stone-900/60 p-5 space-y-4 shadow-2xl">
+          <div className="flex justify-between items-center border-b border-stone-800 pb-3">
+            <span className="text-xs font-bold text-stone-200">2-Way SMS Assistant</span>
             <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
               TWILIO SYNC
             </span>
@@ -370,8 +370,8 @@ export default function ClientCallingPortal() {
                 key={i}
                 className={`max-w-[85%] p-3 rounded-xl text-xs leading-relaxed ${
                   msg.sender === "user"
-                    ? "ml-auto bg-indigo-600 text-white rounded-br-none"
-                    : "mr-auto bg-slate-950 border border-slate-800 text-slate-200 rounded-bl-none"
+                    ? "ml-auto bg-rose-600 text-white rounded-br-none"
+                    : "mr-auto bg-stone-950 border border-stone-800 text-stone-200 rounded-bl-none"
                 }`}
               >
                 {msg.text}
@@ -385,11 +385,11 @@ export default function ClientCallingPortal() {
               value={smsInput}
               onChange={(e) => setSmsInput(e.target.value)}
               placeholder="Type reason for visit, or 'Status', 'Reschedule'..."
-              className="flex-1 rounded-xl bg-slate-950 border border-slate-800 px-3 py-2 text-xs text-slate-100 outline-none focus:border-indigo-500"
+              className="flex-1 rounded-xl bg-stone-950 border border-stone-800 px-3 py-2 text-xs text-stone-100 outline-none focus:border-rose-500"
             />
             <button
               type="submit"
-              className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs font-bold text-white transition"
+              className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-xs font-bold text-white transition"
             >
               Send
             </button>
@@ -399,13 +399,13 @@ export default function ClientCallingPortal() {
 
       {/* TAB 3: Google Calendar Slot Picker */}
       {activeTab === "calendar" && (
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 space-y-4 shadow-2xl">
-          <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+        <div className="rounded-2xl border border-stone-800 bg-stone-900/60 p-5 space-y-4 shadow-2xl">
+          <div className="flex justify-between items-center border-b border-stone-800 pb-3">
             <div>
-              <h3 className="text-xs font-bold text-slate-200">Google Calendar Availability</h3>
-              <p className="text-[10px] text-slate-400">Select an open slot to schedule with Dr. Sarah Lin</p>
+              <h3 className="text-xs font-bold text-stone-200">Google Calendar Availability</h3>
+              <p className="text-[10px] text-stone-400">Select an open slot to schedule with Dr. Sarah Lin</p>
             </div>
-            <span className="text-[10px] font-mono text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">
+            <span className="text-[10px] font-mono text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20">
               LIVE SYNC
             </span>
           </div>
@@ -421,10 +421,10 @@ export default function ClientCallingPortal() {
                 }}
                 className={`p-2.5 rounded-xl border text-center transition text-xs font-mono font-semibold ${
                   !s.is_available
-                    ? "bg-slate-950/40 text-slate-600 border-slate-900 cursor-not-allowed line-through"
+                    ? "bg-stone-950/40 text-stone-600 border-stone-900 cursor-not-allowed line-through"
                     : selectedSlot === s.slot_id
-                    ? "bg-indigo-600 text-white border-indigo-500 shadow-md shadow-indigo-600/20"
-                    : "bg-slate-950 text-slate-300 border-slate-800 hover:border-slate-700"
+                    ? "bg-rose-600 text-white border-rose-500 shadow-md shadow-rose-600/20"
+                    : "bg-stone-950 text-stone-300 border-stone-800 hover:border-stone-700"
                 }`}
               >
                 {s.display_time}
@@ -435,7 +435,7 @@ export default function ClientCallingPortal() {
           {selectedSlot && (
             <button
               onClick={handleConfirmCalendarSlot}
-              className="w-full py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-xs font-bold shadow-lg shadow-indigo-600/25 transition"
+              className="w-full py-2.5 rounded-xl bg-gradient-to-r from-rose-600 to-purple-600 text-white text-xs font-bold shadow-lg shadow-rose-600/25 transition"
             >
               Confirm Calendar Reservation &rarr;
             </button>
@@ -445,18 +445,18 @@ export default function ClientCallingPortal() {
 
       {/* TAB 4: My Live Ticket */}
       {activeTab === "ticket" && (
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6 space-y-5 shadow-2xl text-center">
-          <div className="rounded-2xl bg-gradient-to-b from-slate-950 to-slate-900 border border-slate-800 p-5 space-y-3">
-            <span className="text-[10px] uppercase font-mono text-slate-500 font-bold block">
+        <div className="rounded-2xl border border-stone-800 bg-stone-900/60 p-6 space-y-5 shadow-2xl text-center">
+          <div className="rounded-2xl bg-gradient-to-b from-stone-950 to-stone-900 border border-stone-800 p-5 space-y-3">
+            <span className="text-[10px] uppercase font-mono text-stone-500 font-bold block">
               Active Queue Ticket
             </span>
-            <div className="text-3xl font-black font-mono text-indigo-400">
+            <div className="text-3xl font-black font-mono text-rose-400">
               {ticketNumber || "T-99210"}
             </div>
-            <div className="text-4xl font-extrabold font-mono text-slate-100">
-              {estimatedWait} <span className="text-sm font-sans font-normal text-slate-400">mins wait</span>
+            <div className="text-4xl font-extrabold font-mono text-stone-100">
+              {estimatedWait} <span className="text-sm font-sans font-normal text-stone-400">mins wait</span>
             </div>
-            <div className="text-xs text-slate-400">
+            <div className="text-xs text-stone-400">
               Service: <strong>{serviceType}</strong>
             </div>
             <span className="inline-block px-3 py-1 rounded-full text-xs font-bold font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
@@ -465,19 +465,19 @@ export default function ClientCallingPortal() {
           </div>
 
           <div className="space-y-2">
-            <span className="text-xs font-semibold text-slate-400 block text-left">
+            <span className="text-xs font-semibold text-stone-400 block text-left">
               Need to push back? 1-Click Delay:
             </span>
             <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={() => handleDelayTicket(15)}
-                className="py-2 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xs font-semibold text-slate-200 transition"
+                className="py-2 rounded-xl bg-stone-950 hover:bg-stone-800 border border-stone-800 text-xs font-semibold text-stone-200 transition"
               >
                 +15 Mins
               </button>
               <button
                 onClick={() => handleDelayTicket(30)}
-                className="py-2 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xs font-semibold text-slate-200 transition"
+                className="py-2 rounded-xl bg-stone-950 hover:bg-stone-800 border border-stone-800 text-xs font-semibold text-stone-200 transition"
               >
                 +30 Mins
               </button>

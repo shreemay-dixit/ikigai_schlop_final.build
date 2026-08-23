@@ -39,25 +39,25 @@ export class ErrorBoundary extends React.Component<Props, State> {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-8 text-slate-100">
-          <div className="max-w-2xl w-full bg-slate-900 border border-red-900/50 rounded-2xl p-8 shadow-2xl">
+        <div className="min-h-screen bg-stone-950 flex flex-col items-center justify-center p-8 text-stone-100">
+          <div className="max-w-2xl w-full bg-stone-900 border border-red-900/50 rounded-2xl p-8 shadow-2xl">
             <div className="flex items-center gap-4 text-red-500 mb-6">
               <XCircle className="w-10 h-10" />
               <h1 className="text-3xl font-bold tracking-tight">Critical System Failure</h1>
             </div>
             
-            <p className="text-slate-400 mb-6 text-lg">
+            <p className="text-stone-400 mb-6 text-lg">
               A fatal error was caught by the System Health Provider. Execution has been halted to prevent silent degradation.
             </p>
             
-            <div className="bg-slate-950 rounded-xl p-6 font-mono text-sm border border-slate-800 overflow-auto max-h-64 mb-6">
+            <div className="bg-stone-950 rounded-xl p-6 font-mono text-sm border border-stone-800 overflow-auto max-h-64 mb-6">
               <div className="text-red-400 font-semibold mb-2">{this.state.error?.message}</div>
-              <div className="text-slate-500 whitespace-pre-wrap">{this.state.error?.stack}</div>
+              <div className="text-stone-500 whitespace-pre-wrap">{this.state.error?.stack}</div>
             </div>
             
             <button
               onClick={() => window.location.reload()}
-              className="bg-slate-100 text-slate-950 px-6 py-3 rounded-xl font-semibold hover:bg-white transition-colors"
+              className="bg-stone-100 text-stone-950 px-6 py-3 rounded-xl font-semibold hover:bg-white transition-colors"
             >
               Restart System
             </button>
@@ -191,21 +191,21 @@ export function SystemHealthProvider({ children }: { children: React.ReactNode }
       {children}
 
       {/* Floating System Status Pill in bottom left */}
-      <div className="fixed bottom-4 left-4 z-50 flex items-center gap-2 bg-slate-900/90 border border-slate-800 px-3 py-1.5 rounded-full shadow-lg backdrop-blur-md text-[11px] font-mono">
+      <div className="fixed bottom-4 left-4 z-50 flex items-center gap-2 bg-stone-900/90 border border-stone-800 px-3 py-1.5 rounded-full shadow-lg backdrop-blur-md text-[11px] font-mono">
         {socketStatus === 'connected' ? (
           <>
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-slate-300">Socket: <strong className="text-emerald-400">Connected</strong></span>
+            <span className="text-stone-300">Socket: <strong className="text-emerald-400">Connected</strong></span>
           </>
         ) : socketStatus === 'connecting' ? (
           <>
             <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
-            <span className="text-slate-300">Socket: <strong className="text-amber-400">Connecting...</strong></span>
+            <span className="text-stone-300">Socket: <strong className="text-amber-400">Connecting...</strong></span>
           </>
         ) : (
           <>
             <span className="w-2 h-2 rounded-full bg-rose-500" />
-            <span className="text-slate-300">Socket: <strong className="text-rose-400">Disconnected</strong></span>
+            <span className="text-stone-300">Socket: <strong className="text-rose-400">Disconnected</strong></span>
           </>
         )}
       </div>
@@ -214,21 +214,21 @@ export function SystemHealthProvider({ children }: { children: React.ReactNode }
       {alerts.length > 0 && (
         <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-3 max-w-sm">
           {alerts.map((alert, idx) => (
-            <div key={idx} className="bg-slate-900 border border-red-900/50 shadow-2xl rounded-xl p-4 flex gap-3 text-sm text-slate-200 animate-in slide-in-from-right-4">
+            <div key={idx} className="bg-stone-900 border border-red-900/50 shadow-2xl rounded-xl p-4 flex gap-3 text-sm text-stone-200 animate-in slide-in-from-right-4">
               {alert.level === 'fatal' ? (
                 <WifiOff className="w-5 h-5 text-red-500 shrink-0" />
               ) : (
                 <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />
               )}
               <div className="flex-1">
-                <div className="font-semibold text-slate-100 mb-1">
+                <div className="font-semibold text-stone-100 mb-1">
                   {alert.level === 'fatal' ? 'Fatal Diagnostic Error' : 'Diagnostic Alert'}
                 </div>
-                <div className="text-xs text-slate-300 leading-relaxed">{alert.message}</div>
+                <div className="text-xs text-stone-300 leading-relaxed">{alert.message}</div>
               </div>
               <button 
                 onClick={() => dismissAlert(idx)}
-                className="text-slate-500 hover:text-slate-300 self-start"
+                className="text-stone-500 hover:text-stone-300 self-start"
               >
                 &times;
               </button>

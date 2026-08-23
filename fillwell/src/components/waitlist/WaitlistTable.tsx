@@ -83,7 +83,7 @@ export function WaitlistTable({
         accessorKey: "priority_score",
         header: "Score",
         cell: ({ row }) => (
-          <div className="flex items-center gap-1 font-mono font-bold text-xs text-indigo-400">
+          <div className="flex items-center gap-1 font-mono font-bold text-xs text-rose-400">
             #{row.original.priority_score}
           </div>
         ),
@@ -93,11 +93,11 @@ export function WaitlistTable({
         header: "Patient Name",
         cell: ({ row }) => (
           <div>
-            <div className="font-semibold text-slate-100 text-xs">
+            <div className="font-semibold text-stone-100 text-xs">
               {row.original.patient_name}
             </div>
-            <div className="text-[11px] text-slate-400 font-mono flex items-center gap-1 mt-0.5">
-              <Phone className="h-3 w-3 text-slate-500" />
+            <div className="text-[11px] text-stone-400 font-mono flex items-center gap-1 mt-0.5">
+              <Phone className="h-3 w-3 text-stone-500" />
               {formatPhone(row.original.patient_phone)}
             </div>
           </div>
@@ -126,7 +126,7 @@ export function WaitlistTable({
         cell: ({ row }) => {
           const days = calculateWaitDays(row.original.waitlist_joined_at);
           return (
-            <div className="text-xs text-slate-300 font-mono">
+            <div className="text-xs text-stone-300 font-mono">
               <strong>{days}</strong> days waiting
             </div>
           );
@@ -140,7 +140,7 @@ export function WaitlistTable({
             {row.original.preferred_time_windows.map((w) => (
               <span
                 key={w}
-                className="px-2 py-0.5 rounded bg-slate-800 text-[10px] text-slate-300 font-medium capitalize"
+                className="px-2 py-0.5 rounded bg-stone-800 text-[10px] text-stone-300 font-medium capitalize"
               >
                 {w}
               </span>
@@ -152,7 +152,7 @@ export function WaitlistTable({
         accessorKey: "provider.name",
         header: "Assigned Clinician",
         cell: ({ row }) => (
-          <span className="text-xs text-slate-300">
+          <span className="text-xs text-stone-300">
             {row.original.provider?.name || "Any Available"}
           </span>
         ),
@@ -168,7 +168,7 @@ export function WaitlistTable({
                 onClick={() => bumpPriority(entry.id)}
                 disabled={actionLoading === entry.id}
                 title="Manual Priority Bump"
-                className="p-1.5 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 text-xs font-medium flex items-center gap-1 transition"
+                className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 text-xs font-medium flex items-center gap-1 transition"
               >
                 <ArrowUpCircle className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline text-[11px]">Bump</span>
@@ -178,7 +178,7 @@ export function WaitlistTable({
                 onClick={() => deleteEntry(entry.id)}
                 disabled={actionLoading === entry.id}
                 title="Remove from Waitlist"
-                className="p-1.5 rounded-lg bg-slate-800/80 hover:bg-rose-600/20 text-slate-400 hover:text-rose-400 transition"
+                className="p-1.5 rounded-lg bg-stone-800/80 hover:bg-rose-600/20 text-stone-400 hover:text-rose-400 transition"
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
@@ -205,20 +205,20 @@ export function WaitlistTable({
   });
 
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900/60 overflow-hidden shadow-xl">
+    <div className="rounded-xl border border-stone-800 bg-stone-900/60 overflow-hidden shadow-xl">
       {/* Search Bar */}
-      <div className="flex items-center justify-between p-4 border-b border-slate-800 gap-4 flex-wrap">
+      <div className="flex items-center justify-between p-4 border-b border-stone-800 gap-4 flex-wrap">
         <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-500" />
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-stone-500" />
           <input
             type="text"
             value={globalFilter ?? ""}
             onChange={(e) => setGlobalFilter(e.target.value)}
             placeholder="Search patient, phone, urgency..."
-            className="w-full rounded-lg bg-slate-950/80 border border-slate-800 pl-9 pr-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 outline-none focus:border-indigo-500 transition"
+            className="w-full rounded-lg bg-stone-950/80 border border-stone-800 pl-9 pr-3 py-1.5 text-xs text-stone-200 placeholder-stone-500 outline-none focus:border-rose-500 transition"
           />
         </div>
-        <div className="text-xs text-slate-400 font-mono">
+        <div className="text-xs text-stone-400 font-mono">
           <strong>{entries.length}</strong> waitlisted candidates ready for slot recovery
         </div>
       </div>
@@ -228,9 +228,9 @@ export function WaitlistTable({
         <table className="w-full text-left text-xs border-collapse">
           <thead>
             {table.getHeaderGroups().map((headerGroup) => (
-              <tr key={headerGroup.id} className="border-b border-slate-800 bg-slate-950/40">
+              <tr key={headerGroup.id} className="border-b border-stone-800 bg-stone-950/40">
                 {headerGroup.headers.map((header) => (
-                  <th key={header.id} className="py-3 px-4 text-slate-400 font-semibold uppercase tracking-wider text-[11px]">
+                  <th key={header.id} className="py-3 px-4 text-stone-400 font-semibold uppercase tracking-wider text-[11px]">
                     {header.isPlaceholder
                       ? null
                       : flexRender(header.column.columnDef.header, header.getContext())}
@@ -239,10 +239,10 @@ export function WaitlistTable({
               </tr>
             ))}
           </thead>
-          <tbody className="divide-y divide-slate-800/60">
+          <tbody className="divide-y divide-stone-800/60">
             {table.getRowModel().rows.length > 0 ? (
               table.getRowModel().rows.map((row) => (
-                <tr key={row.id} className="hover:bg-slate-800/40 transition-colors">
+                <tr key={row.id} className="hover:bg-stone-800/40 transition-colors">
                   {row.getVisibleCells().map((cell) => (
                     <td key={cell.id} className="py-3 px-4">
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -252,7 +252,7 @@ export function WaitlistTable({
               ))
             ) : (
               <tr>
-                <td colSpan={columns.length} className="text-center py-10 text-slate-500">
+                <td colSpan={columns.length} className="text-center py-10 text-stone-500">
                   No waitlist entries found. Add patients to start automated recovery.
                 </td>
               </tr>

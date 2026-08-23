@@ -51,19 +51,19 @@ export function Navbar() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 w-full border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-xl">
+      <header className="sticky top-0 z-40 w-full border-b border-stone-800/80 bg-stone-950/80 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8 h-16">
           {/* Brand */}
           <div className="flex items-center gap-5">
             <Link href="/" className="flex items-center gap-2.5 group">
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-cyan-400 p-[1px] shadow-lg shadow-purple-500/20 group-hover:scale-105 transition-transform">
-                <div className="flex h-full w-full items-center justify-center rounded-[11px] bg-slate-950 text-white font-black text-sm">
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-tr from-rose-500 via-purple-500 to-cyan-400 p-[1px] shadow-lg shadow-purple-500/20 group-hover:scale-105 transition-transform">
+                <div className="flex h-full w-full items-center justify-center rounded-[11px] bg-stone-950 text-white font-black text-sm">
                   F
                 </div>
               </div>
               <div>
                 <div className="flex items-center gap-1.5">
-                  <span className="font-extrabold text-slate-100 tracking-tight text-base">
+                  <span className="font-extrabold text-stone-100 tracking-tight text-base">
                     Fillwell
                   </span>
                   <span className="text-[9px] uppercase font-mono font-bold px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-400 border border-purple-500/20">
@@ -86,10 +86,10 @@ export function Navbar() {
                       "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all",
                       isActive
                         ? "bg-purple-600/15 text-purple-300 border border-purple-500/30 shadow-sm"
-                        : "text-slate-400 hover:text-slate-200 hover:bg-slate-900/60"
+                        : "text-stone-400 hover:text-stone-200 hover:bg-stone-900/60"
                     )}
                   >
-                    <Icon className={cn("h-3.5 w-3.5", isActive ? "text-purple-400" : "text-slate-400")} />
+                    <Icon className={cn("h-3.5 w-3.5", isActive ? "text-purple-400" : "text-stone-400")} />
                     {item.label}
                   </Link>
                 );
@@ -103,9 +103,9 @@ export function Navbar() {
             <button
               onClick={() => setCalendarOpen(true)}
               title="Connect Google Calendar"
-              className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs font-semibold text-slate-300 transition"
+              className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-stone-900 hover:bg-stone-800 border border-stone-800 text-xs font-semibold text-stone-300 transition"
             >
-              <CalendarCheck className="h-3.5 w-3.5 text-indigo-400" />
+              <CalendarCheck className="h-3.5 w-3.5 text-rose-400" />
               <span>G-Calendar</span>
             </button>
 
@@ -113,7 +113,7 @@ export function Navbar() {
             <button
               onClick={() => setApiKeysOpen(true)}
               title="Configure Calling & AI API Keys (Gemini, Vapi, Twilio)"
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs font-semibold text-slate-300 transition"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-stone-900 hover:bg-stone-800 border border-stone-800 text-xs font-semibold text-stone-300 transition"
             >
               <Key className="h-3.5 w-3.5 text-cyan-400" />
               <span className="hidden sm:inline">API Keys</span>
@@ -122,7 +122,7 @@ export function Navbar() {
             {/* Dedicated Client Portal Link */}
             <Link
               href="/client"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 hover:opacity-95 text-white text-xs font-bold shadow-md shadow-indigo-600/20 transition"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-rose-600 to-purple-600 hover:opacity-95 text-white text-xs font-bold shadow-md shadow-rose-600/20 transition"
             >
               <PhoneCall className="h-3.5 w-3.5" />
               <span>Client Link</span>

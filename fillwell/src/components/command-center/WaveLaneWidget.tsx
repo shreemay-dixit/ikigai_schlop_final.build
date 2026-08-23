@@ -78,17 +78,17 @@ export function WaveLaneWidget({
 
   if (!activeEvent) {
     return (
-      <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-4">
+      <div className="rounded-xl border border-stone-800 bg-stone-900/40 p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-800 text-slate-400">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-stone-800 text-stone-400">
               <Activity className="h-4 w-4" />
             </div>
             <div>
-              <h4 className="text-xs font-semibold text-slate-200">
+              <h4 className="text-xs font-semibold text-stone-200">
                 Wave Lane Telemetry
               </h4>
-              <p className="text-[11px] text-slate-500">
+              <p className="text-[11px] text-stone-500">
                 No active cancellations. System standing by.
               </p>
             </div>
@@ -105,7 +105,7 @@ export function WaveLaneWidget({
   const apt = activeEvent.appointment;
 
   return (
-    <div className="rounded-xl border border-amber-500/30 bg-gradient-to-r from-amber-500/10 via-slate-900/90 to-slate-900 p-4 shadow-xl">
+    <div className="rounded-xl border border-amber-500/30 bg-gradient-to-r from-amber-500/10 via-stone-900/90 to-stone-900 p-4 shadow-xl">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         {/* Left Telemetry Details */}
         <div className="flex items-start sm:items-center gap-3.5">
@@ -119,13 +119,13 @@ export function WaveLaneWidget({
 
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-xs font-bold text-slate-100">
+              <span className="text-xs font-bold text-stone-100">
                 Active Slot Recovery — Wave #{activeEvent.wave_number}
               </span>
               <span
                 className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${
                   isPaused
-                    ? "bg-slate-800 text-slate-300 border-slate-700"
+                    ? "bg-stone-800 text-stone-300 border-stone-700"
                     : "bg-amber-500/20 text-amber-300 border-amber-500/30"
                 }`}
               >
@@ -133,9 +133,9 @@ export function WaveLaneWidget({
               </span>
             </div>
 
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-xs text-stone-400 mt-0.5">
               Slot:{" "}
-              <strong className="text-slate-200">
+              <strong className="text-stone-200">
                 {apt ? `${formatTimeOnly(apt.start_time)} (${apt.service_type})` : "10:00 AM"}
               </strong>{" "}
               &bull; Targeting{" "}
@@ -150,7 +150,7 @@ export function WaveLaneWidget({
         <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={() => onOpenInspector(activeEvent.appointment_id)}
-            className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition"
+            className="px-3 py-1.5 rounded-lg bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-semibold border border-stone-700 transition"
           >
             Inspect AI Trail
           </button>
@@ -178,7 +178,7 @@ export function WaveLaneWidget({
           <button
             disabled={overrideLoading === activeEvent.id}
             onClick={() => handleOverride(activeEvent.id, "next_wave")}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-md shadow-indigo-600/20 transition"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold shadow-md shadow-rose-600/20 transition"
           >
             <FastForward className="h-3.5 w-3.5" />
             Next Wave
@@ -186,7 +186,7 @@ export function WaveLaneWidget({
 
           <button
             onClick={() => setShowWalkinModal(activeEvent)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-semibold border border-stone-700 transition"
           >
             <UserPlus className="h-3.5 w-3.5 text-cyan-400" />
             Force Walk-in
@@ -197,17 +197,17 @@ export function WaveLaneWidget({
       {/* Walkin Modal */}
       {showWalkinModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-2xl">
-            <h3 className="text-base font-bold text-slate-100 mb-1">
+          <div className="w-full max-w-md rounded-2xl border border-stone-800 bg-stone-900 p-6 shadow-2xl">
+            <h3 className="text-base font-bold text-stone-100 mb-1">
               Force-Assign Slot to Walk-in
             </h3>
-            <p className="text-xs text-slate-400 mb-4">
+            <p className="text-xs text-stone-400 mb-4">
               Instantly cancels automated wave dispatch and claims the slot for an in-clinic patient.
             </p>
 
             <div className="space-y-3 mb-5">
               <div>
-                <label className="text-xs font-medium text-slate-300 block mb-1">
+                <label className="text-xs font-medium text-stone-300 block mb-1">
                   Walk-in Patient Name
                 </label>
                 <input
@@ -215,12 +215,12 @@ export function WaveLaneWidget({
                   value={walkinName}
                   onChange={(e) => setWalkinName(e.target.value)}
                   placeholder="e.g. Maria Gonzalez"
-                  className="w-full rounded-lg bg-slate-950 border border-slate-800 px-3 py-2 text-sm text-slate-100 outline-none focus:border-indigo-500"
+                  className="w-full rounded-lg bg-stone-950 border border-stone-800 px-3 py-2 text-sm text-stone-100 outline-none focus:border-rose-500"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-medium text-slate-300 block mb-1">
+                <label className="text-xs font-medium text-stone-300 block mb-1">
                   Phone Number (E.164)
                 </label>
                 <input
@@ -228,7 +228,7 @@ export function WaveLaneWidget({
                   value={walkinPhone}
                   onChange={(e) => setWalkinPhone(e.target.value)}
                   placeholder="+1 (555) 987-6543"
-                  className="w-full rounded-lg bg-slate-950 border border-slate-800 px-3 py-2 text-sm text-slate-100 outline-none focus:border-indigo-500"
+                  className="w-full rounded-lg bg-stone-950 border border-stone-800 px-3 py-2 text-sm text-stone-100 outline-none focus:border-rose-500"
                 />
               </div>
             </div>
@@ -236,7 +236,7 @@ export function WaveLaneWidget({
             <div className="flex justify-end gap-2">
               <button
                 onClick={() => setShowWalkinModal(null)}
-                className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300 transition"
+                className="px-4 py-2 rounded-lg bg-stone-800 hover:bg-stone-700 text-xs font-semibold text-stone-300 transition"
               >
                 Cancel
               </button>
@@ -244,7 +244,7 @@ export function WaveLaneWidget({
                 onClick={() =>
                   handleOverride(showWalkinModal.id, "force_assign", walkinName, walkinPhone)
                 }
-                className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold text-white shadow-lg shadow-indigo-600/30 transition"
+                className="px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-xs font-semibold text-white shadow-lg shadow-rose-600/30 transition"
               >
                 Confirm Claim
               </button>

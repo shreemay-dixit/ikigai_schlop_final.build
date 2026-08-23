@@ -34,25 +34,25 @@ export default function AuditPage() {
     <div className="max-w-6xl space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight text-slate-900"><FileText className="h-6 w-6 text-indigo-600" />Audit Log</h1>
-          <p className="text-sm text-slate-500">Immutable record of every automated AI action and system event.</p>
+          <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight text-stone-900"><FileText className="h-6 w-6 text-rose-600" />Audit Log</h1>
+          <p className="text-sm text-stone-500">Immutable record of every automated AI action and system event.</p>
         </div>
         <div className="flex items-center gap-2">
           <div className="relative w-full sm:w-auto">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -transtone-y-1/2 text-stone-400" />
             <input value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Filter logs…"
-              className="w-full sm:w-64 rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100" />
+              className="w-full sm:w-64 rounded-lg border border-stone-200 bg-white py-2 pl-9 pr-3 text-sm outline-none transition focus:border-rose-400 focus:ring-2 focus:ring-rose-100" />
           </div>
-          <button onClick={fetchLogs} className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 transition hover:bg-slate-50 hover:text-slate-700 shadow-sm">
+          <button onClick={fetchLogs} className="rounded-lg border border-stone-200 bg-white p-2 text-stone-500 transition hover:bg-stone-50 hover:text-stone-700 shadow-sm">
             <RefreshCw className="h-4 w-4" />
           </button>
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+      <div className="overflow-hidden rounded-xl border border-stone-200 bg-white shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="border-b border-slate-200 bg-slate-50/60 text-slate-500">
+            <thead className="border-b border-stone-200 bg-stone-50/60 text-stone-500">
               <tr>
                 <th className="px-4 py-3 text-left font-semibold">Timestamp</th>
                 <th className="px-4 py-3 text-left font-semibold">Entity</th>
@@ -60,36 +60,36 @@ export default function AuditPage() {
                 <th className="px-4 py-3 text-left font-semibold">Payload</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-stone-100">
               {loading ? Array.from({ length: 6 }).map((_, i) => (
                 <tr key={i}>
-                  <td className="px-4 py-3"><div className="h-4 w-24 animate-pulse rounded bg-slate-100" /></td>
-                  <td className="px-4 py-3"><div className="h-4 w-20 animate-pulse rounded bg-slate-100" /></td>
-                  <td className="px-4 py-3"><div className="h-4 w-32 animate-pulse rounded bg-slate-100" /></td>
-                  <td className="px-4 py-3"><div className="h-4 w-48 animate-pulse rounded bg-slate-100" /></td>
+                  <td className="px-4 py-3"><div className="h-4 w-24 animate-pulse rounded bg-stone-100" /></td>
+                  <td className="px-4 py-3"><div className="h-4 w-20 animate-pulse rounded bg-stone-100" /></td>
+                  <td className="px-4 py-3"><div className="h-4 w-32 animate-pulse rounded bg-stone-100" /></td>
+                  <td className="px-4 py-3"><div className="h-4 w-48 animate-pulse rounded bg-stone-100" /></td>
                 </tr>
               )) : filtered.length ? filtered.map((log) => (
-                <tr key={log.id} className="transition-colors hover:bg-slate-50/50">
-                  <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-slate-500">
+                <tr key={log.id} className="transition-colors hover:bg-stone-50/50">
+                  <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-stone-500">
                     {new Date(log.created_at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" })}
                   </td>
                   <td className="px-4 py-3">
-                    <span className="rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-semibold text-slate-700 uppercase">{log.entity_type}</span>
+                    <span className="rounded-md border border-stone-200 bg-stone-50 px-2 py-0.5 text-[11px] font-semibold text-stone-700 uppercase">{log.entity_type}</span>
                   </td>
-                  <td className="px-4 py-3 text-xs font-medium text-slate-800">{log.event_type}</td>
+                  <td className="px-4 py-3 text-xs font-medium text-stone-800">{log.event_type}</td>
                   <td className="px-4 py-3">
-                    <pre className="max-w-md overflow-hidden text-ellipsis whitespace-nowrap rounded-md bg-slate-50 border border-slate-100 px-2 py-1 font-mono text-[11px] text-slate-600" title={JSON.stringify(log.payload, null, 2)}>
+                    <pre className="max-w-md overflow-hidden text-ellipsis whitespace-nowrap rounded-md bg-stone-50 border border-stone-100 px-2 py-1 font-mono text-[11px] text-stone-600" title={JSON.stringify(log.payload, null, 2)}>
                       {JSON.stringify(log.payload)}
                     </pre>
                   </td>
                 </tr>
               )) : (
-                <tr><td colSpan={4} className="py-12 text-center text-slate-400">No audit logs recorded yet.</td></tr>
+                <tr><td colSpan={4} className="py-12 text-center text-stone-400">No audit logs recorded yet.</td></tr>
               )}
             </tbody>
           </table>
         </div>
-        <div className="border-t border-slate-100 bg-slate-50/60 px-4 py-2.5 text-xs text-slate-500">{filtered.length} entries</div>
+        <div className="border-t border-stone-100 bg-stone-50/60 px-4 py-2.5 text-xs text-stone-500">{filtered.length} entries</div>
       </div>
     </div>
   );

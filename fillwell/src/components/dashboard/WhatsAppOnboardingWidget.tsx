@@ -99,10 +99,10 @@ export function WhatsAppOnboardingWidget({ onRefreshWaitlist }: LiveStandbyWidge
   };
 
   return (
-    <div className="bg-gradient-to-br from-emerald-950/50 via-slate-900 to-slate-950 border-2 border-emerald-500/30 rounded-3xl p-6 shadow-2xl space-y-6">
+    <div className="bg-gradient-to-br from-emerald-950/50 via-stone-900 to-stone-950 border-2 border-emerald-500/30 rounded-3xl p-6 shadow-2xl space-y-6">
       
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-stone-800 pb-4">
         <div className="flex items-center gap-3">
           <div className="p-3 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-2xl animate-pulse">
             <Radio className="w-6 h-6" />
@@ -114,7 +114,7 @@ export function WhatsAppOnboardingWidget({ onRefreshWaitlist }: LiveStandbyWidge
                 WEBSOCKET LIVE
               </span>
             </h3>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-stone-400">
               Zero telecom friction. Patients scan the QR code on mobile to activate their live digital buzzer and claim slots instantly.
             </p>
           </div>
@@ -137,7 +137,7 @@ export function WhatsAppOnboardingWidget({ onRefreshWaitlist }: LiveStandbyWidge
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
         
         {/* QR Code Container */}
-        <div className="md:col-span-4 flex flex-col items-center justify-center p-5 bg-white rounded-2xl shadow-xl text-slate-900 space-y-3 min-h-[250px]">
+        <div className="md:col-span-4 flex flex-col items-center justify-center p-5 bg-white rounded-2xl shadow-xl text-stone-900 space-y-3 min-h-[250px]">
           <QRCodeSVG
             value={portalUrl}
             size={170}
@@ -145,42 +145,42 @@ export function WhatsAppOnboardingWidget({ onRefreshWaitlist }: LiveStandbyWidge
             includeMargin={true}
           />
           <div className="text-center">
-            <p className="text-[11px] font-bold text-slate-800 uppercase tracking-wider">Scan with Phone Camera</p>
-            <p className="text-[10px] text-slate-500">Opens Live Standby Buzzer directly</p>
+            <p className="text-[11px] font-bold text-stone-800 uppercase tracking-wider">Scan with Phone Camera</p>
+            <p className="text-[10px] text-stone-500">Opens Live Standby Buzzer directly</p>
           </div>
         </div>
 
         {/* Live Metrics & Instructions */}
         <div className="md:col-span-4 space-y-3 text-xs font-sans">
-          <div className="p-3.5 bg-slate-950/80 border border-slate-800 rounded-2xl space-y-2">
+          <div className="p-3.5 bg-stone-950/80 border border-stone-800 rounded-2xl space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Active Standby Patients</span>
+              <span className="text-[10px] uppercase font-bold text-stone-400 tracking-wider">Active Standby Patients</span>
               <span className="text-xs font-mono font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
                 {standbyCount} Connected
               </span>
             </div>
-            <p className="text-slate-300 text-[11px] leading-relaxed">
+            <p className="text-stone-300 text-[11px] leading-relaxed">
               When patients scan the QR code and join the standby list, they connect via Supabase Realtime WebSocket with 0ms delay.
             </p>
           </div>
 
-          <div className="p-3.5 bg-slate-950/80 border border-slate-800 rounded-2xl space-y-1.5">
+          <div className="p-3.5 bg-stone-950/80 border border-stone-800 rounded-2xl space-y-1.5">
             <span className="text-[10px] uppercase font-bold text-amber-400 tracking-wider flex items-center gap-1.5">
               <Zap className="w-3.5 h-3.5" /> First-to-Tap Atomic Claim
             </span>
-            <p className="text-slate-300 text-[11px] leading-relaxed">
+            <p className="text-stone-300 text-[11px] leading-relaxed">
               When any cancellation occurs, all waiting phones display the buzzer button. The fastest tap locks the slot via Postgres RPC!
             </p>
           </div>
         </div>
 
         {/* Live Demonstration Simulator */}
-        <div className="md:col-span-4 bg-slate-950 border border-slate-800 rounded-2xl p-5 space-y-4">
+        <div className="md:col-span-4 bg-stone-950 border border-stone-800 rounded-2xl p-5 space-y-4">
           <div className="space-y-1">
             <span className="text-xs font-bold text-white flex items-center gap-1.5">
               <Zap className="w-4 h-4 text-amber-400" /> Live Demo Simulator
             </span>
-            <p className="text-[11px] text-slate-400">
+            <p className="text-[11px] text-stone-400">
               Open <code className="text-emerald-400">/standby</code> on your phone or in another tab, then click below to trigger a live cancellation:
             </p>
           </div>
@@ -188,13 +188,13 @@ export function WhatsAppOnboardingWidget({ onRefreshWaitlist }: LiveStandbyWidge
           <button
             onClick={handleTriggerCancellation}
             disabled={isTriggering}
-            className="w-full py-3.5 bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black rounded-xl text-xs flex items-center justify-center gap-2 shadow-xl shadow-amber-500/20 transform active:scale-95 transition disabled:opacity-50"
+            className="w-full py-3.5 bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 hover:from-amber-400 hover:to-orange-400 text-stone-950 font-black rounded-xl text-xs flex items-center justify-center gap-2 shadow-xl shadow-amber-500/20 transform active:scale-95 transition disabled:opacity-50"
           >
             <Play className="w-4 h-4 fill-current" />
             {isTriggering ? 'Firing Cancellation...' : '⚡ Trigger Cancellation (Test Buzzer)'}
           </button>
 
-          <p className="text-[10px] text-slate-500 text-center flex items-center justify-center gap-1">
+          <p className="text-[10px] text-stone-500 text-center flex items-center justify-center gap-1">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
             <span>Pessimistic DB Locks • 409 Conflict Protection</span>
           </p>

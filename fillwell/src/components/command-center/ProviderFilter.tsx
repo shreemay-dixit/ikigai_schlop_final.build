@@ -21,9 +21,9 @@ export function ProviderFilter({
   if (isLoading) {
     return (
       <div className="flex gap-2 animate-pulse overflow-x-auto pb-1">
-        <div className="h-9 w-28 bg-slate-800 rounded-lg"></div>
-        <div className="h-9 w-40 bg-slate-800 rounded-lg"></div>
-        <div className="h-9 w-40 bg-slate-800 rounded-lg"></div>
+        <div className="h-9 w-28 bg-stone-800 rounded-lg"></div>
+        <div className="h-9 w-40 bg-stone-800 rounded-lg"></div>
+        <div className="h-9 w-40 bg-stone-800 rounded-lg"></div>
       </div>
     );
   }
@@ -35,8 +35,8 @@ export function ProviderFilter({
         className={cn(
           "flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all border",
           selectedProviderId === null || selectedProviderId === "all"
-            ? "bg-indigo-600 text-white border-indigo-500 shadow-md shadow-indigo-600/20"
-            : "bg-slate-900/80 text-slate-300 border-slate-800 hover:border-slate-700 hover:bg-slate-800"
+            ? "bg-rose-600 text-white border-rose-500 shadow-md shadow-rose-600/20"
+            : "bg-stone-900/80 text-stone-300 border-stone-800 hover:border-stone-700 hover:bg-stone-800"
         )}
       >
         <UserCheck className="h-3.5 w-3.5" />
@@ -52,13 +52,13 @@ export function ProviderFilter({
             className={cn(
               "flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all border",
               isSelected
-                ? "bg-indigo-600 text-white border-indigo-500 shadow-md shadow-indigo-600/20"
-                : "bg-slate-900/80 text-slate-300 border-slate-800 hover:border-slate-700 hover:bg-slate-800"
+                ? "bg-rose-600 text-white border-rose-500 shadow-md shadow-rose-600/20"
+                : "bg-stone-900/80 text-stone-300 border-stone-800 hover:border-stone-700 hover:bg-stone-800"
             )}
           >
-            <Stethoscope className="h-3.5 w-3.5 text-indigo-400" />
+            <Stethoscope className="h-3.5 w-3.5 text-rose-400" />
             <span>{p.name}</span>
-            <span className="text-[10px] text-slate-400 font-normal">({p.specialty.split(' ')[0]})</span>
+            <span className="text-[10px] text-stone-400 font-normal">({p.specialty.split(' ')[0]})</span>
           </button>
         );
       })}

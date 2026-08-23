@@ -45,45 +45,45 @@ export default function LoginPage() {
   };
 
   const inputClass = (field: string) =>
-    `block w-full rounded-lg border px-3 py-2.5 text-sm outline-none transition-all placeholder:text-slate-400 ${
+    `block w-full rounded-lg border px-3 py-2.5 text-sm outline-none transition-all placeholder:text-stone-400 ${
       errors[field]
         ? "border-red-300 bg-red-50 text-red-900 focus:border-red-500 focus:ring-2 focus:ring-red-200"
-        : "border-slate-200 bg-white text-slate-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+        : "border-stone-200 bg-white text-stone-900 focus:border-rose-500 focus:ring-2 focus:ring-rose-100"
     }`;
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-stone-50 p-4">
       <div className="w-full max-w-sm space-y-8 animate-page-in">
         {/* Logo */}
         <div className="text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-md">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-rose-600 text-white shadow-md">
             <HeartPulse className="h-6 w-6" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+          <h1 className="text-2xl font-bold tracking-tight text-stone-900">
             {view === "login" && "Sign in to Fillwell"}
             {view === "signup" && "Create your account"}
             {view === "forgot" && "Reset password"}
           </h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-sm text-stone-500">
             {view === "login" && (
-              <>No account?{" "}<button onClick={() => { setView("signup"); setErrors({}); }} className="font-medium text-indigo-600 hover:text-indigo-500">Sign up</button></>
+              <>No account?{" "}<button onClick={() => { setView("signup"); setErrors({}); }} className="font-medium text-rose-600 hover:text-rose-500">Sign up</button></>
             )}
             {view === "signup" && (
-              <>Already registered?{" "}<button onClick={() => { setView("login"); setErrors({}); }} className="font-medium text-indigo-600 hover:text-indigo-500">Sign in</button></>
+              <>Already registered?{" "}<button onClick={() => { setView("login"); setErrors({}); }} className="font-medium text-rose-600 hover:text-rose-500">Sign in</button></>
             )}
             {view === "forgot" && (
-              <>Remember it?{" "}<button onClick={() => { setView("login"); setErrors({}); }} className="font-medium text-indigo-600 hover:text-indigo-500">Back to sign in</button></>
+              <>Remember it?{" "}<button onClick={() => { setView("login"); setErrors({}); }} className="font-medium text-rose-600 hover:text-rose-500">Back to sign in</button></>
             )}
           </p>
         </div>
 
         {/* Card */}
-        <form onSubmit={handleSubmit} className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-5">
+        <form onSubmit={handleSubmit} className="rounded-xl border border-stone-200 bg-white p-6 shadow-sm space-y-5">
           {/* Email */}
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">Email</label>
+            <label className="mb-1 block text-sm font-medium text-stone-700">Email</label>
             <div className="relative">
-              <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -transtone-y-1/2 text-stone-400" />
               <input
                 type="email"
                 value={email}
@@ -99,15 +99,15 @@ export default function LoginPage() {
           {view !== "forgot" && (
             <div>
               <div className="mb-1 flex items-center justify-between">
-                <label className="text-sm font-medium text-slate-700">Password</label>
+                <label className="text-sm font-medium text-stone-700">Password</label>
                 {view === "login" && (
-                  <button type="button" onClick={() => { setView("forgot"); setErrors({}); }} className="text-xs font-medium text-indigo-600 hover:text-indigo-500">
+                  <button type="button" onClick={() => { setView("forgot"); setErrors({}); }} className="text-xs font-medium text-rose-600 hover:text-rose-500">
                     Forgot password?
                   </button>
                 )}
               </div>
               <div className="relative">
-                <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -transtone-y-1/2 text-stone-400" />
                 <input
                   type="password"
                   value={password}
@@ -124,7 +124,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={isLoading}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-60 disabled:cursor-not-allowed"
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-rose-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-600 disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {isLoading ? (
               <><Loader2 className="h-4 w-4 animate-spin" />Processing…</>
