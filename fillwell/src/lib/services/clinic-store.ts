@@ -170,6 +170,48 @@ class ClinicDataStore {
     this.appointments.set(a1.id, a1);
     this.appointments.set(a2.id, a2);
     this.appointments.set(a3.id, a3);
+
+    // Also seed initial standby waitlist candidates for rich simulation
+    const w1: WaitlistEntry = {
+      id: 'wt-maya',
+      clinic_id: DEFAULT_CLINIC_ID,
+      provider_id: p1.id,
+      patient_name: 'Maya Lin',
+      patient_phone: '+1 (555) 200-0011',
+      urgency_tier: 'urgent',
+      priority_score: 5,
+      token_number: 'WL-201',
+      preferred_time_windows: ['mornings', 'afternoons'],
+      preferred_days: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
+      waitlist_joined_at: new Date(Date.now() - 15 * 60000).toISOString(),
+      is_active: true,
+      notes: 'Acute lower back spasm, needs urgent adjustment',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      provider: p1,
+    };
+
+    const w2: WaitlistEntry = {
+      id: 'wt-david',
+      clinic_id: DEFAULT_CLINIC_ID,
+      provider_id: p1.id,
+      patient_name: 'David Chen',
+      patient_phone: '+1 (555) 200-0012',
+      urgency_tier: 'moderate',
+      priority_score: 3,
+      token_number: 'WL-202',
+      preferred_time_windows: ['afternoons'],
+      preferred_days: ['monday', 'wednesday', 'friday'],
+      waitlist_joined_at: new Date(Date.now() - 30 * 60000).toISOString(),
+      is_active: true,
+      notes: 'Follow-up on post-operative knee swelling',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      provider: p1,
+    };
+
+    this.waitlist.set(w1.id, w1);
+    this.waitlist.set(w2.id, w2);
   }
 
   resetSandbox() {
@@ -196,6 +238,10 @@ class ClinicDataStore {
       phone: data.phone || null,
       operating_hours: data.operating_hours || {
         monday: { start: '08:00', end: '17:00' },
+        tuesday: { start: '08:00', end: '17:00' },
+        wednesday: { start: '08:00', end: '17:00' },
+        thursday: { start: '08:00', end: '17:00' },
+        friday: { start: '08:00', end: '17:00' },
       },
       is_active: true,
       created_at: new Date().toISOString(),
@@ -205,17 +251,40 @@ class ClinicDataStore {
     return prov;
   }
 
-  // Appointment methods
+  // Appointment methods with Dynamic Wait Times & Tokens
   getAppointments(providerId?: string | null): Appointment[] {
-    const list = Array.from(this.appointments.values()).map((apt) => ({
-      ...apt,
-      provider: apt.provider_id ? this.providers.get(apt.provider_id) || null : null,
-    }));
+    const activeCounters = Math.max(1, this.organization.active_counters || 2);
+    const baseServiceTime = this.organization.base_service_time_mins || 12.0;
+
+    let list = Array.from(this.appointments.values()).map((apt, index) => {
+      const tokenNumber = apt.token_number || `TK-${(index + 101).toString()}`;
+      return {
+        ...apt,
+        token_number: tokenNumber,
+        provider: apt.provider_id ? this.providers.get(apt.provider_id) || null : null,
+      };
+    });
 
     if (providerId && providerId !== 'all') {
-      return list.filter((apt) => apt.provider_id === providerId);
+      list = list.filter((apt) => apt.provider_id === providerId);
     }
-    return list.sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
+
+    list.sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
+
+    let activeAhead = 0;
+    return list.map((apt) => {
+      if (apt.status === 'completed' || apt.status === 'cancelled') {
+        return { ...apt, queue_position: 0, estimated_wait_mins: 0 };
+      }
+      const position = activeAhead;
+      activeAhead += 1;
+      const wait = Math.max(2, Math.round((position / activeCounters) * baseServiceTime));
+      return {
+        ...apt,
+        queue_position: position + 1,
+        estimated_wait_mins: wait,
+      };
+    });
   }
 
   getAppointmentById(id: string): Appointment | null {
@@ -240,6 +309,7 @@ class ClinicDataStore {
       end_time: data.end_time || new Date(Date.now() + 1800000).toISOString(),
       service_type: data.service_type || 'Consultation',
       status: (data.status as AppointmentStatus) || 'confirmed',
+      token_number: `TK-${Math.floor(100 + Math.random() * 900)}`,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
@@ -260,6 +330,24 @@ class ClinicDataStore {
       this.triggerSlotRecovery(apt.id);
     } else if (status === 'recovered') {
       apt.recovered_at = new Date().toISOString();
+    } else if (status === 'completed') {
+      apt.completed_at = new Date().toISOString();
+      this.auditLogs.unshift({
+        id: `log-${Date.now()}`,
+        clinic_id: DEFAULT_CLINIC_ID,
+        appointment_id: apt.id,
+        entity_type: 'appointment',
+        entity_id: apt.id,
+        event_type: 'patient_consultation_completed',
+        payload: {
+          patient_name: apt.patient_name,
+          service_type: apt.service_type,
+          token_number: apt.token_number || 'TK-101',
+          completed_at: apt.completed_at,
+          timestamp: new Date().toISOString(),
+        },
+        created_at: new Date().toISOString(),
+      });
     }
 
     return apt;
@@ -333,7 +421,7 @@ class ClinicDataStore {
 
   // Waitlist methods
   getWaitlist(providerId?: string | null): WaitlistEntry[] {
-    const list = Array.from(this.waitlist.values())
+    let list = Array.from(this.waitlist.values())
       .filter((w) => w.is_active)
       .map((w) => ({
         ...w,
@@ -341,25 +429,43 @@ class ClinicDataStore {
       }));
 
     if (providerId && providerId !== 'all') {
-      return list.filter((w) => !w.provider_id || w.provider_id === providerId);
+      list = list.filter((w) => !w.provider_id || w.provider_id === providerId);
     }
 
     const urgencyWeight: Record<UrgencyTier, number> = { urgent: 3, moderate: 2, routine: 1 };
-    return list.sort((a, b) => {
+    list.sort((a, b) => {
       const diff = urgencyWeight[b.urgency_tier] - urgencyWeight[a.urgency_tier];
       if (diff !== 0) return diff;
       return b.priority_score - a.priority_score;
+    });
+
+    const activeCounters = Math.max(1, this.organization.active_counters || 2);
+    const baseServiceTime = this.organization.base_service_time_mins || 12.0;
+
+    return list.map((item, idx) => {
+      const tokenNumber = item.token_number || `WL-${(idx + 201).toString()}`;
+      const priorityFactor = Math.max(0.3, 1.0 - (item.priority_score - 1) * 0.15);
+      const wait = Math.max(2, Math.round((idx / activeCounters) * baseServiceTime * priorityFactor));
+
+      return {
+        ...item,
+        token_number: tokenNumber,
+        queue_position: idx + 1,
+        estimated_wait_mins: wait,
+      };
     });
   }
 
   createWaitlistEntry(data: Partial<WaitlistEntry>): WaitlistEntry {
     const id = `wt-${Date.now()}`;
+    const tokenNumber = data.token_number || `WL-${Math.floor(200 + Math.random() * 800)}`;
     const entry: WaitlistEntry = {
       id,
       clinic_id: DEFAULT_CLINIC_ID,
       provider_id: data.provider_id || null,
       patient_name: data.patient_name || '',
       patient_phone: data.patient_phone || '',
+      token_number: tokenNumber,
       urgency_tier: data.urgency_tier || 'routine',
       preferred_time_windows: data.preferred_time_windows || ['mornings'],
       preferred_days: data.preferred_days || ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],

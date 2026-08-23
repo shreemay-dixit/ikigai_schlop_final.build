@@ -40,6 +40,9 @@ export default function DigitalBuzzerPortal() {
   const [calendarContext, setCalendarContext] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [patientToken, setPatientToken] = useState<string>("WL-204");
+  const [patientWaitMins, setPatientWaitMins] = useState<number>(6);
+  const [patientQueuePos, setPatientQueuePos] = useState<number>(1);
 
   // Chat History
   const [chatInput, setChatInput] = useState("");
@@ -217,12 +220,25 @@ export default function DigitalBuzzerPortal() {
         throw new Error(json.error || "Failed to join waitlist");
       }
 
+      if (json.data) {
+        if (json.data.token_number) setPatientToken(json.data.token_number);
+        if (json.data.estimated_wait_mins) setPatientWaitMins(json.data.estimated_wait_mins);
+        if (json.data.queue_position) setPatientQueuePos(json.data.queue_position);
+      }
+
       localStorage.setItem(
         "fillwell_buzzer_patient",
-        JSON.stringify({ name: finalName, phone: finalPhone })
+        JSON.stringify({
+          name: finalName,
+          phone: finalPhone,
+          token: json.data?.token_number || patientToken,
+          wait: json.data?.estimated_wait_mins || patientWaitMins,
+        })
       );
 
-      toast.success(`Joined Standby Radar as ${finalName}!`);
+      toast.success(`Joined Standby Radar as ${finalName}!`, {
+        description: `Assigned Token #${json.data?.token_number || patientToken} · Est. Wait: ~${json.data?.estimated_wait_mins || 6}m`,
+      });
       setState("radar");
     } catch (err: any) {
       toast.error(err.message || "Failed to join standby queue");
@@ -752,29 +768,45 @@ export default function DigitalBuzzerPortal() {
             STATE B: THE RADAR (WAITING FOR OPENING)
         ══════════════════════════════════════════════════════════════════ */}
         {state === "radar" && (
-          <div className="w-full flex flex-col items-center justify-center text-center space-y-6 animate-page-in py-4">
+          <div className="w-full flex flex-col items-center justify-center text-center space-y-5 animate-page-in py-3">
             {/* Status Pill */}
             <div className="rounded-full border border-stone-200 bg-white px-4 py-1.5 text-xs font-bold text-stone-700 shadow-sm flex items-center gap-2">
               <span className="h-2 w-2 rounded-full bg-rose-500 animate-ping" />
               <span>Standby Active for <strong>{patientName || "Alex Morgan"}</strong> ({urgencyTier.toUpperCase()} Priority)</span>
             </div>
 
+            {/* Token & Dynamic Wait Metric Box */}
+            <div className="flex w-full max-w-xs items-center justify-between rounded-2xl border border-stone-200 bg-white p-3.5 shadow-sm">
+              <div className="text-left">
+                <span className="text-[9px] font-bold uppercase tracking-wider text-stone-400 font-mono">Assigned Token</span>
+                <p className="text-base font-black font-mono text-rose-600">#{patientToken}</p>
+              </div>
+              <div className="h-8 w-px bg-stone-100" />
+              <div className="text-right">
+                <span className="text-[9px] font-bold uppercase tracking-wider text-stone-400 font-mono">Estimated Wait</span>
+                <p className="text-xs font-mono font-bold text-emerald-600 flex items-center justify-end gap-1">
+                  <Clock className="h-3 w-3" />
+                  <span>~{patientWaitMins} mins (Pos #{patientQueuePos})</span>
+                </p>
+              </div>
+            </div>
+
             {/* Radar Animation */}
-            <div className="relative flex h-52 w-52 items-center justify-center my-4">
+            <div className="relative flex h-48 w-48 items-center justify-center my-2">
               <div className="absolute inset-0 animate-ping rounded-full bg-rose-500/10 duration-1000" />
               <div className="absolute inset-4 animate-pulse rounded-full bg-rose-500/15" />
               <div className="absolute inset-10 animate-ping rounded-full bg-rose-500/20" />
-              <div className="relative flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-tr from-rose-600 to-amber-600 text-white shadow-2xl shadow-rose-500/40">
-                <Radio className="h-10 w-10 animate-bounce" />
+              <div className="relative flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-tr from-rose-600 to-amber-600 text-white shadow-2xl shadow-rose-500/40">
+                <Radio className="h-8 w-8 animate-bounce" />
               </div>
             </div>
 
             {/* Explainer */}
-            <div className="space-y-2 max-w-xs">
-              <h2 className="text-2xl font-black tracking-tight text-stone-900">
+            <div className="space-y-1.5 max-w-xs">
+              <h2 className="text-xl font-black tracking-tight text-stone-900">
                 Waiting for an opening...
               </h2>
-              <p className="text-xs font-medium text-stone-500 leading-relaxed">
+              <p className="text-[11px] font-medium text-stone-500 leading-relaxed">
                 Keep this screen open. When an appointment is cancelled by the clinic operator, this screen will turn bright red to claim.
               </p>
             </div>
@@ -803,7 +835,7 @@ export default function DigitalBuzzerPortal() {
                 SLOT OPEN!
               </h2>
               <p className="mt-2 text-xs font-medium text-red-100">
-                A cancellation just occurred. Claim instantly to secure it.
+                A cancellation just occurred. Claim instantly to secure it for Token #{patientToken}.
               </p>
             </div>
 
@@ -867,6 +899,7 @@ export default function DigitalBuzzerPortal() {
             </div>
 
             <div className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4 text-xs space-y-1.5 text-emerald-900 text-left">
+              <div className="flex justify-between"><span className="text-emerald-700">Token ID:</span><span className="font-mono font-black text-emerald-800">#{patientToken}</span></div>
               <div className="flex justify-between"><span className="text-emerald-700">Clinic:</span><span className="font-bold">Metro Urgent Care</span></div>
               <div className="flex justify-between"><span className="text-emerald-700">Service:</span><span className="font-bold">{openSlot?.service_type || "Emergency Consultation"}</span></div>
               <div className="flex justify-between"><span className="text-emerald-700">Status:</span><span className="font-mono font-bold text-emerald-600 uppercase">Atomic Lock Confirmed</span></div>

@@ -63,6 +63,10 @@ export interface Appointment {
   cancelled_at?: string | null;
   recovered_at?: string | null;
   recovered_by_patient_name?: string | null;
+  token_number?: string;
+  estimated_wait_mins?: number;
+  queue_position?: number;
+  completed_at?: string | null;
   created_at: string;
   updated_at: string;
   provider?: Provider | null;
@@ -74,6 +78,9 @@ export interface WaitlistEntry {
   provider_id: string | null;
   patient_name: string;
   patient_phone: string;
+  token_number?: string;
+  estimated_wait_mins?: number;
+  queue_position?: number;
   urgency_tier: UrgencyTier;
   preferred_time_windows: string[]; // e.g. ['mornings', 'afternoons']
   preferred_days: string[]; // e.g. ['monday', 'wednesday']

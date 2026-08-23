@@ -3,7 +3,8 @@
 import React, { useState } from "react";
 import {
   Calendar, Clock, User, Phone, AlertCircle, CheckCircle2,
-  XCircle, Zap, Loader2, Plus, RefreshCw, Radio
+  XCircle, Zap, Loader2, Plus, RefreshCw, Radio, Check,
+  Ticket
 } from "lucide-react";
 import { toast } from "sonner";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -17,6 +18,9 @@ export interface AppointmentItem {
   start_time: string;
   end_time: string;
   status: "confirmed" | "cancelled" | "recovering" | "recovered" | "completed";
+  token_number?: string;
+  estimated_wait_mins?: number;
+  queue_position?: number;
   recovered_by_patient_name?: string | null;
   cancellation_reason?: string | null;
 }
@@ -29,10 +33,11 @@ interface SchedulePanelProps {
 
 export function SchedulePanel({ appointments, loading, onRefresh }: SchedulePanelProps) {
   const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [completingId, setCompletingId] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const handleCancelAppointment = async (apt: AppointmentItem) => {
-    if (cancellingId === apt.id) return;
+    if (cancellingId === apt.id || completingId === apt.id) return;
     setCancellingId(apt.id);
 
     try {
@@ -51,7 +56,7 @@ export function SchedulePanel({ appointments, loading, onRefresh }: SchedulePane
       }
 
       toast.success(`Slot cancelled! Recovery wave dispatched to standby radar.`, {
-        description: `Patient: ${apt.patient_name} · Service: ${apt.service_type}`,
+        description: `Patient: ${apt.patient_name} (${apt.token_number || "TK-101"}) · Service: ${apt.service_type}`,
       });
       onRefresh();
     } catch (err: any) {
@@ -61,12 +66,47 @@ export function SchedulePanel({ appointments, loading, onRefresh }: SchedulePane
     }
   };
 
+  const handleCompleteAppointment = async (apt: AppointmentItem) => {
+    if (completingId === apt.id || cancellingId === apt.id) return;
+    setCompletingId(apt.id);
+
+    try {
+      const res = await fetch(`/api/appointments/${apt.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status: "completed",
+        }),
+      });
+
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.error || "Failed to mark consultation completed");
+      }
+
+      toast.success(`Consultation completed for ${apt.patient_name}! 🎉`, {
+        description: `Token: ${apt.token_number || "TK-101"} · Rolling velocity updated`,
+      });
+      onRefresh();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to complete appointment");
+    } finally {
+      setCompletingId(null);
+    }
+  };
+
   const statusBadge = (status: AppointmentItem["status"], recoveredBy?: string | null) => {
     switch (status) {
       case "confirmed":
         return (
           <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700">
             <CheckCircle2 className="h-3 w-3 text-emerald-600" /> Confirmed
+          </span>
+        );
+      case "completed":
+        return (
+          <span className="inline-flex items-center gap-1 rounded-full bg-stone-100 border border-stone-300 px-2.5 py-0.5 text-[11px] font-bold text-stone-700">
+            <Check className="h-3 w-3 text-emerald-600" /> Completed
           </span>
         );
       case "cancelled":
@@ -101,7 +141,7 @@ export function SchedulePanel({ appointments, loading, onRefresh }: SchedulePane
           </div>
           <div>
             <h2 className="text-base font-bold text-stone-900 leading-none">Schedule & Appointment Grid</h2>
-            <p className="text-xs text-stone-500 mt-1">Live clinical bookings. Cancel any slot to broadcast an atomic standby buzzer.</p>
+            <p className="text-xs text-stone-500 mt-1">Live clinical bookings with token tracking, dynamic wait estimates, and completion controls.</p>
           </div>
         </div>
 
@@ -131,18 +171,19 @@ export function SchedulePanel({ appointments, loading, onRefresh }: SchedulePane
           <table className="w-full text-left text-xs">
             <thead className="border-b border-stone-200 bg-stone-50/70 text-stone-500 font-bold uppercase tracking-wider text-[10px]">
               <tr>
-                <th className="px-5 py-3">Patient</th>
+                <th className="px-5 py-3">Token & Patient</th>
                 <th className="px-4 py-3">Service</th>
                 <th className="px-4 py-3">Time Slot</th>
+                <th className="px-4 py-3">Estimated Wait</th>
                 <th className="px-4 py-3">Status</th>
-                <th className="px-5 py-3 text-right">Action</th>
+                <th className="px-5 py-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-100">
               {loading && appointments.length === 0 ? (
                 Array.from({ length: 4 }).map((_, i) => (
                   <tr key={i}>
-                    <td colSpan={5} className="px-5 py-4">
+                    <td colSpan={6} className="px-5 py-4">
                       <div className="h-5 w-full animate-pulse rounded-lg bg-stone-100" />
                     </td>
                   </tr>
@@ -150,7 +191,8 @@ export function SchedulePanel({ appointments, loading, onRefresh }: SchedulePane
               ) : appointments.length > 0 ? (
                 appointments.map((apt) => {
                   const isCancelling = cancellingId === apt.id;
-                  const isBooked = apt.status === "confirmed";
+                  const isCompleting = completingId === apt.id;
+                  const canAction = apt.status === "confirmed" || apt.status === "recovered";
 
                   return (
                     <tr
@@ -158,13 +200,17 @@ export function SchedulePanel({ appointments, loading, onRefresh }: SchedulePane
                       className={`transition-colors hover:bg-stone-50/80 ${
                         apt.status === "cancelled" || apt.status === "recovering"
                           ? "bg-rose-50/30"
+                          : apt.status === "completed"
+                          ? "bg-stone-50/40 opacity-75"
                           : ""
                       }`}
                     >
+                      {/* Token & Patient */}
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-2.5">
-                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-stone-100 text-stone-700 font-bold text-xs">
-                            {apt.patient_name.slice(0, 2).toUpperCase()}
+                          <div className="flex flex-col items-center justify-center rounded-xl bg-stone-900 text-white font-mono font-bold text-[10px] px-2 py-1 shadow-sm min-w-[54px]">
+                            <span className="text-[8px] text-rose-300 uppercase tracking-tight">TOKEN</span>
+                            <span>{apt.token_number || "TK-101"}</span>
                           </div>
                           <div>
                             <p className="font-bold text-stone-900">{apt.patient_name}</p>
@@ -173,10 +219,12 @@ export function SchedulePanel({ appointments, loading, onRefresh }: SchedulePane
                         </div>
                       </td>
 
+                      {/* Service */}
                       <td className="px-4 py-3.5 font-medium text-stone-700">
                         {apt.service_type}
                       </td>
 
+                      {/* Time Slot */}
                       <td className="px-4 py-3.5">
                         <div className="flex items-center gap-1.5 text-stone-800 font-mono font-medium">
                           <Clock className="h-3.5 w-3.5 text-stone-400" />
@@ -189,29 +237,81 @@ export function SchedulePanel({ appointments, loading, onRefresh }: SchedulePane
                         </div>
                       </td>
 
+                      {/* Dynamic Wait Time */}
+                      <td className="px-4 py-3.5">
+                        {apt.status === "completed" ? (
+                          <span className="text-[11px] font-mono font-medium text-stone-400">
+                            Completed
+                          </span>
+                        ) : apt.status === "cancelled" || apt.status === "recovering" ? (
+                          <span className="text-[11px] font-mono font-bold text-rose-600">
+                            Vacated
+                          </span>
+                        ) : (
+                          <div className="inline-flex items-center gap-1 rounded-lg bg-amber-50 border border-amber-200 px-2 py-0.5 text-[11px] font-mono font-bold text-amber-800">
+                            <Clock className="h-3 w-3 text-amber-600" />
+                            <span>
+                              {apt.estimated_wait_mins && apt.estimated_wait_mins <= 2
+                                ? "Now Serving"
+                                : `~${apt.estimated_wait_mins || 5} mins`}
+                            </span>
+                          </div>
+                        )}
+                      </td>
+
+                      {/* Status Badge */}
                       <td className="px-4 py-3.5">
                         {statusBadge(apt.status, apt.recovered_by_patient_name)}
                       </td>
 
+                      {/* Actions (Done Button + Cancel Button) */}
                       <td className="px-5 py-3.5 text-right">
-                        {isBooked ? (
-                          <button
-                            onClick={() => handleCancelAppointment(apt)}
-                            disabled={isCancelling}
-                            className="inline-flex items-center gap-1.5 rounded-xl bg-red-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-red-700 transition disabled:opacity-50 active:scale-95"
-                          >
-                            {isCancelling ? (
-                              <>
-                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                <span>Cancelling…</span>
-                              </>
-                            ) : (
-                              <>
-                                <XCircle className="h-3.5 w-3.5" />
-                                <span>Cancel Appointment</span>
-                              </>
-                            )}
-                          </button>
+                        {canAction ? (
+                          <div className="flex items-center justify-end gap-1.5">
+                            {/* Done / Mark Completed Button */}
+                            <button
+                              onClick={() => handleCompleteAppointment(apt)}
+                              disabled={isCompleting || isCancelling}
+                              title="Mark consultation completed"
+                              className="inline-flex items-center gap-1 rounded-xl bg-emerald-600 px-2.5 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-emerald-700 transition disabled:opacity-50 active:scale-95 cursor-pointer"
+                            >
+                              {isCompleting ? (
+                                <>
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                  <span>Finishing…</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Check className="h-3.5 w-3.5" />
+                                  <span>Done</span>
+                                </>
+                              )}
+                            </button>
+
+                            {/* Cancel Button */}
+                            <button
+                              onClick={() => handleCancelAppointment(apt)}
+                              disabled={isCancelling || isCompleting}
+                              title="Cancel appointment and broadcast standby buzzer"
+                              className="inline-flex items-center gap-1 rounded-xl bg-red-600 px-2.5 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-red-700 transition disabled:opacity-50 active:scale-95 cursor-pointer"
+                            >
+                              {isCancelling ? (
+                                <>
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                  <span>Cancelling…</span>
+                                </>
+                              ) : (
+                                <>
+                                  <XCircle className="h-3.5 w-3.5" />
+                                  <span>Cancel</span>
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        ) : apt.status === "completed" ? (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 font-mono">
+                            <CheckCircle2 className="h-3.5 w-3.5" /> Finished
+                          </span>
                         ) : apt.status === "recovering" || apt.status === "cancelled" ? (
                           <span className="text-[11px] font-bold text-rose-600 font-mono">
                             ⚡ Broadcasting...
@@ -225,7 +325,7 @@ export function SchedulePanel({ appointments, loading, onRefresh }: SchedulePane
                 })
               ) : (
                 <tr>
-                  <td colSpan={5} className="p-8">
+                  <td colSpan={6} className="p-8">
                     <EmptyState
                       icon={Calendar}
                       title="No Appointments Scheduled"

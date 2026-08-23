@@ -3,7 +3,8 @@
 import React, { useState } from "react";
 import {
   Users, Clock, AlertTriangle, ShieldCheck, ArrowUp,
-  Trash2, Loader2, Sparkles, Plus, RefreshCw, Radio
+  Trash2, Loader2, Sparkles, Plus, RefreshCw, Radio, Check,
+  Ticket
 } from "lucide-react";
 import { toast } from "sonner";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -15,6 +16,9 @@ export interface WaitlistItem {
   patient_phone: string;
   urgency_tier: "routine" | "moderate" | "urgent";
   priority_score: number;
+  token_number?: string;
+  estimated_wait_mins?: number;
+  queue_position?: number;
   waitlist_joined_at: string;
   is_active: boolean;
   notes?: string | null;
@@ -46,6 +50,26 @@ export function WaitlistPanel({ waitlist, loading, onRefresh }: WaitlistPanelPro
       onRefresh();
     } catch (err: any) {
       toast.error(err.message || "Failed to bump priority");
+    } finally {
+      setActionId(null);
+    }
+  };
+
+  const handleAdmitDone = async (item: WaitlistItem) => {
+    if (actionId === item.id) return;
+    setActionId(item.id);
+
+    try {
+      const res = await fetch(`/api/waitlist/${item.id}`, { method: "DELETE" });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.error || "Failed to process entry");
+
+      toast.success(`Patient admitted & marked done! 🎉`, {
+        description: `${item.patient_name} (${item.token_number || "WL-201"})`,
+      });
+      onRefresh();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to process entry");
     } finally {
       setActionId(null);
     }
@@ -104,7 +128,7 @@ export function WaitlistPanel({ waitlist, loading, onRefresh }: WaitlistPanelPro
           </div>
           <div>
             <h2 className="text-base font-bold text-stone-900 leading-none">Standby Radar Waitlist</h2>
-            <p className="text-xs text-stone-500 mt-1">Live queue of prioritized standby patients awaiting wave notifications.</p>
+            <p className="text-xs text-stone-500 mt-1">Live queue of prioritized standby patients with tokens and dynamic wait estimates.</p>
           </div>
         </div>
 
@@ -135,9 +159,9 @@ export function WaitlistPanel({ waitlist, loading, onRefresh }: WaitlistPanelPro
           <table className="w-full text-left text-xs">
             <thead className="border-b border-stone-200 bg-stone-50/70 text-stone-500 font-bold uppercase tracking-wider text-[10px]">
               <tr>
-                <th className="px-5 py-3">Patient</th>
+                <th className="px-5 py-3">Token & Patient</th>
                 <th className="px-4 py-3">Urgency & Score</th>
-                <th className="px-4 py-3">Wait Time</th>
+                <th className="px-4 py-3">Estimated Wait</th>
                 <th className="px-4 py-3">Notes</th>
                 <th className="px-5 py-3 text-right">Actions</th>
               </tr>
@@ -161,10 +185,12 @@ export function WaitlistPanel({ waitlist, loading, onRefresh }: WaitlistPanelPro
 
                   return (
                     <tr key={item.id} className="transition-colors hover:bg-stone-50/80">
+                      {/* Token & Patient */}
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-2.5">
-                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-rose-50 text-rose-600 font-bold text-xs">
-                            {item.patient_name.slice(0, 2).toUpperCase()}
+                          <div className="flex flex-col items-center justify-center rounded-xl bg-amber-500 text-stone-950 font-mono font-black text-[10px] px-2 py-1 shadow-sm min-w-[54px]">
+                            <span className="text-[8px] uppercase tracking-tight text-stone-900 opacity-80">TOKEN</span>
+                            <span>{item.token_number || "WL-201"}</span>
                           </div>
                           <div>
                             <p className="font-bold text-stone-900">{item.patient_name}</p>
@@ -173,35 +199,63 @@ export function WaitlistPanel({ waitlist, loading, onRefresh }: WaitlistPanelPro
                         </div>
                       </td>
 
+                      {/* Urgency */}
                       <td className="px-4 py-3.5">
                         {urgencyBadge(item.urgency_tier, item.priority_score)}
                       </td>
 
-                      <td className="px-4 py-3.5 font-mono text-stone-700 font-medium">
-                        {minsElapsed}m in queue
+                      {/* Dynamic Wait Estimate */}
+                      <td className="px-4 py-3.5">
+                        <div className="space-y-0.5">
+                          <div className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[11px] font-mono font-bold text-emerald-800">
+                            <Clock className="h-3 w-3 text-emerald-600" />
+                            <span>
+                              {item.estimated_wait_mins && item.estimated_wait_mins <= 2
+                                ? "Next in Line"
+                                : `~${item.estimated_wait_mins || 6} mins`}
+                            </span>
+                          </div>
+                          <p className="text-[10px] font-mono text-stone-400">
+                            Position #{item.queue_position || 1} ({minsElapsed}m elapsed)
+                          </p>
+                        </div>
                       </td>
 
+                      {/* Notes */}
                       <td className="px-4 py-3.5 text-stone-500 truncate max-w-xs">
                         {item.notes || "Registered via Standby Radar"}
                       </td>
 
+                      {/* Actions */}
                       <td className="px-5 py-3.5 text-right">
                         <div className="flex items-center justify-end gap-1.5">
+                          {/* Done / Admit Button */}
                           <button
-                            onClick={() => handleBumpPriority(item.id)}
+                            onClick={() => handleAdmitDone(item)}
                             disabled={isActing}
-                            title="Bump priority score"
-                            className="inline-flex items-center gap-1 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1 text-[11px] font-bold text-rose-700 hover:bg-rose-100 transition disabled:opacity-50"
+                            title="Mark patient admitted & served"
+                            className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-2.5 py-1 text-[11px] font-bold text-white shadow-sm hover:bg-emerald-700 transition disabled:opacity-50 cursor-pointer"
                           >
                             {isActing ? (
                               <Loader2 className="h-3 w-3 animate-spin" />
                             ) : (
                               <>
-                                <ArrowUp className="h-3 w-3" /> Bump
+                                <Check className="h-3 w-3" /> Done
                               </>
                             )}
                           </button>
 
+                          {/* Bump Priority */}
+                          <button
+                            onClick={() => handleBumpPriority(item.id)}
+                            disabled={isActing}
+                            title="Bump priority score"
+                            className="inline-flex items-center gap-1 rounded-lg border border-amber-300 bg-amber-50 px-2 py-1 text-[11px] font-bold text-amber-800 hover:bg-amber-100 transition disabled:opacity-50"
+                          >
+                            <ArrowUp className="h-3 w-3" /> Bump
+                          </button>
+
+                          {/* Remove */}
                           <button
                             onClick={() => handleRemove(item.id)}
                             disabled={isActing}
