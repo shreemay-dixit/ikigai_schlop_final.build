@@ -2,13 +2,6 @@
 node_modules/
 .pnp
 .pnp.js
-.venv/
-venv/
-ENV/
-env/
-__pycache__/
-*.py[cod]
-*$py.class
 
 # Next.js Build & Outputs
 .next/
@@ -51,10 +44,6 @@ yarn-error.log*
 .DS_Store
 .DS_Store?
 ._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
 .vscode/
 .idea/
 *.swp
