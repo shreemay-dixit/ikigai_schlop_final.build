@@ -41,6 +41,43 @@ The system features a **Dual-View Architecture** (Operator Dashboard + Mobile Di
 
 ---
 
+## 🖼️ Application Screenshots & Live Interface
+
+### 1. View 1: Operator Command Center (`/dashboard`)
+*Unified desktop control center with real-time active bookings counter, priority standby waitlist, schedule management, and instant 1-click slot cancellation.*
+
+![Fillwell Operator Command Center](docs/screenshots/01-operator-dashboard.png)
+
+---
+
+### 2. Schedule Grid & 1-Click Slot Cancellation
+*Interactive appointment grid displaying patient bookings with live status badges (`Confirmed`, `Recovered`, `Recovering`) and red cancellation triggers with loading states.*
+
+![Schedule Grid & Cancellations](docs/screenshots/02-schedule-grid.png)
+
+---
+
+### 3. Immutable System Audit Feed & Real-Time Ledger
+*Real-time streaming ledger permanently recording all cancellations, quiet hours delays, wave broadcasts, and atomic lock claims with exact millisecond timestamps.*
+
+![System Audit Feed](docs/screenshots/03-system-audit-feed.png)
+
+---
+
+### 4. View 2: Mobile Digital Buzzer & AI Clinical Chatbot (`/portal`)
+*Mobile-first patient portal with Gemini 1.5 conversational clinical triage, live calendar awareness, acuity evaluation, and quick-test clinical chips.*
+
+![Mobile AI Clinical Triage](docs/screenshots/04-mobile-ai-triage.png)
+
+---
+
+### 5. Behind-the-Scenes Pipeline & Gemini JSON Telemetry
+*Collapsible developer telemetry drawer rendering real-time structured Gemini JSON outputs, live calendar context, prompt payloads, and target PostgreSQL mutations.*
+
+![Behind-the-Scenes Telemetry Inspector](docs/screenshots/05-behind-scenes-telemetry.png)
+
+---
+
 ## 🌟 Core Features
 
 ### 1. View 1: Operator Command Center (`/dashboard`)
