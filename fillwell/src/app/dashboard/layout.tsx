@@ -5,15 +5,16 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Calendar, Users, Settings, FileText, Shield, Search,
-  Bell, Menu, X, ChevronRight, LogOut, HeartPulse, Activity
+  Bell, Menu, X, ChevronRight, LogOut, HeartPulse, Activity, ListOrdered, PieChart, Building2
 } from "lucide-react";
 
 const NAV = [
-  { name: "Overview", href: "/dashboard", icon: LayoutDashboard },
+  { name: "Live Queue", href: "/dashboard", icon: ListOrdered },
+  { name: "Dashboard", href: "/dashboard/analytics", icon: PieChart },
   { name: "Appointments", href: "/dashboard/appointments", icon: Calendar },
-  { name: "Waitlist", href: "/dashboard/waitlist", icon: Users },
-  { name: "Recovery", href: "/dashboard/recovery", icon: Activity },
+  { name: "Recovery Waves", href: "/dashboard/recovery", icon: Activity },
   { name: "Audit Log", href: "/dashboard/audit", icon: FileText },
+  { name: "Configuration", href: "/dashboard/organization", icon: Building2 },
   { name: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
 

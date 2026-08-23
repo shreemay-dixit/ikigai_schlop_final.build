@@ -1,201 +1,199 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { Calendar, Users, Activity, TrendingUp, Zap, RefreshCw, ChevronRight, Loader2, DollarSign, Clock, FileText } from "lucide-react";
-import Link from "next/link";
+import React, { useEffect, useState, useMemo } from "react";
+import {
+  flexRender, getCoreRowModel, useReactTable, getSortedRowModel, SortingState, getFilteredRowModel, ColumnDef,
+} from "@tanstack/react-table";
+import { Users, Search, ArrowUpDown, AlertTriangle, Clock, ShieldCheck, Loader2, Trash2, ArrowUp, Activity } from "lucide-react";
 import { toast } from "sonner";
-import { QRCodeSVG } from "qrcode.react";
 
-export default function DashboardOverview() {
-  const [stats, setStats] = useState({ appointments: 0, waitlist: 0, recovery: 0, cancelled: 0, revenueSaved: 0 });
-  const [logs, setLogs] = useState<any[]>([]);
+interface WL {
+  id: string; patient_name: string; patient_phone: string; urgency_tier: string;
+  priority_score: number; waitlist_joined_at: string; is_active: boolean; notes?: string | null;
+}
+
+export default function QueueCommandCenter() {
+  const [data, setData] = useState<WL[]>([]);
   const [loading, setLoading] = useState(true);
-  const [seeding, setSeeding] = useState(false);
-  const [portalUrl, setPortalUrl] = useState("");
-
-  useEffect(() => {
-    if (typeof window !== "undefined") setPortalUrl(`${window.location.origin}/standby`);
-    fetchData();
-  }, []);
+  const [sorting, setSorting] = useState<SortingState>([{ id: "priority_score", desc: true }]);
+  const [globalFilter, setGlobalFilter] = useState("");
+  const [actionId, setActionId] = useState<string | null>(null);
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [aptRes, waitRes, recRes, auditRes] = await Promise.all([
-        fetch("/api/appointments").then((r) => r.json()),
-        fetch("/api/waitlist").then((r) => r.json()),
-        fetch("/api/recovery/override").then((r) => r.json()),
-        fetch("/api/audit").then((r) => r.json()),
-      ]);
-      const apts = aptRes.data || [];
-      const recoveredCount = apts.filter((a: any) => a.status === "recovered").length;
-      
-      setStats({
-        appointments: apts.length,
-        waitlist: (waitRes.data || []).filter((w: any) => w.is_active).length,
-        recovery: (recRes.data || []).length,
-        cancelled: apts.filter((a: any) => a.status === "cancelled").length,
-        revenueSaved: recoveredCount * 150, // Mock $150 per recovered slot
-      });
-      setLogs((auditRes.data || []).reverse().slice(0, 5));
-    } catch { }
+      const res = await fetch("/api/waitlist");
+      const json = await res.json();
+      setData(json.data || []);
+    } catch { toast.error("Failed to fetch queue"); }
     setLoading(false);
   };
 
-  const handleSeed = async () => {
-    setSeeding(true);
+  useEffect(() => { fetchData(); }, []);
+
+  const handleBump = async (id: string) => {
+    setActionId(id);
     try {
-      await fetch("/api/sandbox", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "seed" }) });
-      toast.success("Demo data seeded");
+      await fetch(`/api/waitlist/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "bump_priority" }) });
+      toast.success("Priority bumped");
       fetchData();
-    } catch { toast.error("Seed failed"); }
-    setSeeding(false);
+    } catch { toast.error("Failed to bump"); }
+    setActionId(null);
   };
 
-  const handleReset = async () => {
-    setSeeding(true);
+  const handleDelete = async (id: string) => {
+    setActionId(id);
     try {
-      await fetch("/api/sandbox", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "reset" }) });
-      toast.success("Database reset to clean state");
+      await fetch(`/api/waitlist/${id}`, { method: "DELETE" });
+      toast.success("Entry removed");
       fetchData();
-    } catch { toast.error("Reset failed"); }
-    setSeeding(false);
+    } catch { toast.error("Failed to remove"); }
+    setActionId(null);
   };
 
-  const Stat = ({ icon: Icon, label, value, trend, trendUp, color, href }: any) => (
-    <div className="group relative overflow-hidden rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition-all">
-      <div className="absolute -right-4 -top-4 h-24 w-24 rounded-full bg-gradient-to-br from-indigo-50 to-transparent opacity-50 transition-transform group-hover:scale-110" />
-      <div className="relative flex items-center justify-between">
-        <div className={`flex h-10 w-10 items-center justify-center rounded-xl shadow-sm ${color}`}>
-          <Icon className="h-5 w-5" />
+  const urgencyBadge = (tier: string) => {
+    const map: Record<string, { cls: string; icon: React.ReactNode }> = {
+      urgent: { cls: "bg-red-50 text-red-700 border-red-200", icon: <AlertTriangle className="h-3 w-3" /> },
+      moderate: { cls: "bg-amber-50 text-amber-700 border-amber-200", icon: <Clock className="h-3 w-3" /> },
+      routine: { cls: "bg-blue-50 text-blue-700 border-blue-200", icon: <ShieldCheck className="h-3 w-3" /> },
+    };
+    const m = map[tier] || map.routine;
+    return <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-bold uppercase ${m.cls}`}>{m.icon}{tier}</span>;
+  };
+
+  const columns: ColumnDef<WL>[] = useMemo(() => [
+    {
+      accessorKey: "patient_name",
+      header: ({ column }) => <button className="flex items-center gap-1 font-semibold" onClick={() => column.toggleSorting()}>Patient <ArrowUpDown className="h-3 w-3" /></button>,
+      cell: ({ row }) => (
+        <div>
+          <p className="font-semibold text-slate-900">{row.original.patient_name}
+            {!row.original.is_active && <span className="ml-1.5 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-400 uppercase border border-slate-200">Inactive</span>}
+          </p>
+          <p className="text-[11px] text-slate-500 font-mono">{row.original.patient_phone}</p>
         </div>
-        {href && (
-          <Link href={href} className="text-[11px] font-semibold text-slate-400 hover:text-indigo-600 flex items-center gap-0.5 transition-colors">
-            Details <ChevronRight className="h-3 w-3" />
-          </Link>
-        )}
-      </div>
-      <div className="relative mt-4">
-        <p className="text-3xl font-bold tracking-tight text-slate-900">
-          {loading ? <span className="inline-block h-8 w-16 animate-pulse rounded-md bg-slate-100" /> : value}
-        </p>
-        <div className="mt-1 flex items-center gap-2">
-          <p className="text-xs font-medium text-slate-500">{label}</p>
-          {trend && (
-            <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-bold ${trendUp ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>
-              {trend}
-            </span>
-          )}
-        </div>
-      </div>
-    </div>
-  );
+      ),
+    },
+    { accessorKey: "urgency_tier", header: "AI Triage", cell: ({ row }) => urgencyBadge(row.original.urgency_tier) },
+    {
+      accessorKey: "priority_score",
+      header: ({ column }) => <button className="flex items-center gap-1 font-semibold" onClick={() => column.toggleSorting()}>Score <ArrowUpDown className="h-3 w-3" /></button>,
+      cell: ({ row }) => <span className="rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 font-mono text-xs font-bold text-slate-700">{row.original.priority_score}/5</span>,
+    },
+    {
+      accessorKey: "waitlist_joined_at", header: "Joined",
+      cell: ({ row }) => {
+        const d = new Date(row.original.waitlist_joined_at);
+        return <span className="text-xs text-slate-600">{d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}</span>;
+      },
+    },
+    { accessorKey: "notes", header: "Notes", cell: ({ row }) => <span className="line-clamp-1 max-w-[180px] text-xs text-slate-500" title={row.original.notes || ""}>{row.original.notes || "—"}</span> },
+    {
+      id: "actions", header: "",
+      cell: ({ row }) => {
+        if (!row.original.is_active) return null;
+        const id = row.original.id;
+        return (
+          <div className="flex items-center justify-end gap-1">
+            <button onClick={() => handleBump(id)} disabled={actionId === id} title="Bump priority"
+              className="rounded-md border border-slate-200 p-1.5 text-slate-500 transition hover:bg-indigo-50 hover:text-indigo-600 disabled:opacity-50 shadow-sm bg-white">
+              {actionId === id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ArrowUp className="h-3.5 w-3.5" />}
+            </button>
+            <button onClick={() => handleDelete(id)} disabled={actionId === id} title="Remove"
+              className="rounded-md border border-slate-200 p-1.5 text-slate-500 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-50 shadow-sm bg-white">
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        );
+      },
+    },
+  ], [actionId]);
+
+  const table = useReactTable({
+    data, columns, getCoreRowModel: getCoreRowModel(), onSortingChange: setSorting,
+    getSortedRowModel: getSortedRowModel(), getFilteredRowModel: getFilteredRowModel(),
+    state: { sorting, globalFilter }, onGlobalFilterChange: setGlobalFilter,
+  });
+
+  // Calculate Insights
+  const activeQueue = data.filter(d => d.is_active);
+  const urgentCount = activeQueue.filter(d => d.urgency_tier === "urgent").length;
+  const moderateCount = activeQueue.filter(d => d.urgency_tier === "moderate").length;
+  const routineCount = activeQueue.filter(d => d.urgency_tier === "routine").length;
+  
+  const avgWaitMins = activeQueue.length ? Math.round(activeQueue.reduce((acc, curr) => {
+    return acc + (Date.now() - new Date(curr.waitlist_joined_at).getTime()) / 60000;
+  }, 0) / activeQueue.length) : 0;
 
   return (
-    <div className="space-y-8 max-w-6xl pb-12">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Dashboard</h1>
-          <p className="text-sm text-slate-500">Business intelligence and operational overview.</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button onClick={handleSeed} disabled={seeding} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-50">
-            {seeding ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Zap className="h-3.5 w-3.5 text-amber-500" />}
-            Seed Data
-          </button>
-          <button onClick={handleReset} disabled={seeding} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-50">
-            <RefreshCw className="h-3.5 w-3.5 text-slate-400" /> Reset
-          </button>
-        </div>
-      </div>
-
-      {/* KPI Grid */}
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat icon={DollarSign} label="Revenue Saved" value={`$${stats.revenueSaved}`} trend="+12% wk" trendUp={true} color="bg-emerald-500 text-white" />
-        <Stat icon={Users} label="Waitlisted Patients" value={stats.waitlist} trend="+4% wk" trendUp={true} color="bg-indigo-600 text-white" href="/dashboard/waitlist" />
-        <Stat icon={Activity} label="Active Recoveries" value={stats.recovery} color="bg-amber-500 text-white" href="/dashboard/recovery" />
-        <Stat icon={Calendar} label="Total Bookings" value={stats.appointments} trend="-2% wk" trendUp={false} color="bg-slate-800 text-white" href="/dashboard/appointments" />
-      </div>
-
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* Main Content Area (2/3 width) */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* QR Code Widget */}
-          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col sm:flex-row gap-6 items-center sm:items-start">
-            <div className="rounded-xl border border-slate-200 p-3 bg-white shadow-sm shrink-0">
-              {portalUrl && <QRCodeSVG value={portalUrl} size={110} level="H" />}
-            </div>
-            <div className="space-y-4 w-full">
-              <div>
-                <h2 className="text-base font-bold text-slate-900">Patient Standby Gateway</h2>
-                <p className="mt-1 text-sm text-slate-500">
-                  Patients scan this QR code to join the live standby waitlist via Gemini AI triage. Displays realtime radar for open slots.
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Link href="/standby" target="_blank" className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 transition">
-                  Open Standby <ChevronRight className="h-4 w-4" />
-                </Link>
-                <Link href="/book" target="_blank" className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 transition">
-                  Booking Portal
-                </Link>
-              </div>
-            </div>
+    <div className="flex flex-col lg:flex-row gap-6 max-w-7xl">
+      {/* Main Column: The Queue */}
+      <div className="flex-1 space-y-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight text-slate-900"><Users className="h-6 w-6 text-indigo-600" />Live Queue</h1>
+            <p className="text-sm text-slate-500">Manage priority waitlist and automated triage queue.</p>
           </div>
-          
-          {/* System Status */}
-          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-bold text-slate-900">Infrastructure Health</h2>
-              <span className="flex items-center gap-1.5 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold uppercase text-emerald-700">
-                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" /> Operational
-              </span>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              {[
-                { name: "Gemini Triage", status: "Active" },
-                { name: "WebSockets", status: "Connected" },
-                { name: "Atomic Locks", status: "Enabled" },
-                { name: "Wave Engine", status: "Standby" },
-              ].map((s) => (
-                <div key={s.name} className="rounded-lg border border-slate-100 bg-slate-50 p-3">
-                  <p className="text-[10px] font-semibold uppercase text-slate-400">{s.name}</p>
-                  <p className="mt-1 text-sm font-bold text-slate-800">{s.status}</p>
-                </div>
-              ))}
-            </div>
+          <div className="relative w-full sm:w-auto">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input value={globalFilter ?? ""} onChange={(e) => setGlobalFilter(e.target.value)} placeholder="Search queue…"
+              className="w-full sm:w-64 rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm outline-none shadow-sm transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100" />
           </div>
         </div>
 
-        {/* Sidebar Activity Feed (1/3 width) */}
-        <div className="rounded-xl border border-slate-200 bg-white shadow-sm flex flex-col h-full overflow-hidden">
-          <div className="border-b border-slate-100 p-5 flex items-center justify-between">
-            <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2"><Clock className="h-4 w-4 text-indigo-600" /> Recent Activity</h2>
-            <Link href="/dashboard/audit" className="text-[11px] font-semibold text-indigo-600 hover:text-indigo-700">View All</Link>
-          </div>
-          <div className="flex-1 p-5 overflow-y-auto bg-slate-50/50">
-            {loading ? (
-              <div className="space-y-4">
-                {Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-12 animate-pulse rounded bg-slate-100" />)}
-              </div>
-            ) : logs.length ? (
-              <div className="space-y-4 relative before:absolute before:inset-y-0 before:left-[11px] before:w-[2px] before:bg-slate-200">
-                {logs.map((log) => (
-                  <div key={log.id} className="relative flex gap-3">
-                    <div className="relative z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-white bg-slate-200 text-[10px]">
-                      <FileText className="h-3 w-3 text-slate-500" />
-                    </div>
-                    <div className="flex-1 pb-1">
-                      <p className="text-xs font-semibold text-slate-900">{log.event_type.replace(/_/g, " ")}</p>
-                      <p className="text-[10px] text-slate-500">{new Date(log.created_at).toLocaleTimeString()}</p>
-                    </div>
-                  </div>
+        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="border-b border-slate-200 bg-slate-50/60 text-slate-500">
+                {table.getHeaderGroups().map((hg) => (
+                  <tr key={hg.id}>{hg.headers.map((h) => <th key={h.id} className="px-4 py-2.5 text-left text-xs font-bold uppercase tracking-wider">{h.isPlaceholder ? null : flexRender(h.column.columnDef.header, h.getContext())}</th>)}</tr>
                 ))}
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {loading ? Array.from({ length: 5 }).map((_, i) => (
+                  <tr key={i}>{columns.map((_, j) => <td key={j} className="px-4 py-2"><div className="h-4 w-3/4 animate-pulse rounded bg-slate-100" /></td>)}</tr>
+                )) : table.getRowModel().rows.length ? table.getRowModel().rows.map((row) => (
+                  <tr key={row.id} className={`transition-colors group ${row.original.is_active ? "hover:bg-slate-50/50" : "opacity-50"}`}>
+                    {row.getVisibleCells().map((cell) => <td key={cell.id} className="px-4 py-2">{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>)}
+                  </tr>
+                )) : (
+                  <tr><td colSpan={columns.length} className="py-12 text-center text-slate-400">Queue is currently empty.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+          <div className="border-t border-slate-100 bg-slate-50/60 px-4 py-2.5 text-xs text-slate-500 font-medium">{activeQueue.length} active patients in queue</div>
+        </div>
+      </div>
+
+      {/* Side Panel: Queue Insights */}
+      <div className="w-full lg:w-80 shrink-0 space-y-6">
+        <div className="rounded-xl border border-slate-200 bg-slate-900 p-6 text-white shadow-md">
+          <h2 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-slate-400"><Activity className="h-4 w-4 text-indigo-400" />Queue Insights</h2>
+          <div className="mt-6 space-y-6">
+            <div>
+              <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Avg Wait Time</p>
+              <div className="mt-1 flex items-end gap-1.5">
+                <p className="text-4xl font-black">{loading ? "-" : avgWaitMins}</p>
+                <p className="text-sm font-medium text-slate-400 mb-1">mins</p>
               </div>
-            ) : (
-              <div className="text-center py-8 text-xs text-slate-400">No recent activity.</div>
-            )}
+            </div>
+            
+            <div className="space-y-3 pt-4 border-t border-slate-800">
+              <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Priority Distribution</p>
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-2 text-sm"><AlertTriangle className="h-4 w-4 text-red-400" /> Urgent</span>
+                <span className="font-mono text-sm font-bold text-white">{loading ? "-" : urgentCount}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-2 text-sm"><Clock className="h-4 w-4 text-amber-400" /> Moderate</span>
+                <span className="font-mono text-sm font-bold text-white">{loading ? "-" : moderateCount}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-2 text-sm"><ShieldCheck className="h-4 w-4 text-blue-400" /> Routine</span>
+                <span className="font-mono text-sm font-bold text-white">{loading ? "-" : routineCount}</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
