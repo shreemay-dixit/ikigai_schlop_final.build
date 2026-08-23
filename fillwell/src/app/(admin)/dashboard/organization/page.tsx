@@ -28,26 +28,23 @@ export default function OrganizationPage() {
     load();
   }, []);
 
-  // Autosave logic
-  useEffect(() => {
-    if (loading) return;
-    if (JSON.stringify(form) === JSON.stringify(formRef.current)) return; // No change
-
+  const handleSave = async () => {
+    if (saveStatus === "saving") return;
     setSaveStatus("saving");
-    const handler = setTimeout(async () => {
-      try {
-        await fetch("/api/organization", {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name: form.clinicName }),
-        });
-        formRef.current = form;
-        setSaveStatus("saved");
-        setTimeout(() => setSaveStatus("idle"), 2000);
-      } catch { toast.error("Autosave failed"); setSaveStatus("idle"); }
-    }, 800); // 800ms debounce
-
-    return () => clearTimeout(handler);
-  }, [form, loading]);
+    try {
+      await fetch("/api/organization", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: form.clinicName }),
+      });
+      formRef.current = form;
+      setSaveStatus("saved");
+      toast.success("Organization profile saved successfully!");
+      setTimeout(() => setSaveStatus("idle"), 2000);
+    } catch {
+      toast.error("Failed to save organization");
+      setSaveStatus("idle");
+    }
+  };
 
   const inputCls = "w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm text-stone-900 outline-none transition focus:border-rose-400 focus:ring-2 focus:ring-rose-100";
 
@@ -66,8 +63,15 @@ export default function OrganizationPage() {
           <p className="text-sm text-stone-500">Manage your clinic profile and billing.</p>
         </div>
         <div className="flex items-center justify-end min-w-[100px]">
-          {saveStatus === "saving" && <span className="flex items-center gap-1.5 text-xs font-medium text-stone-500"><Loader2 className="h-3 w-3 animate-spin" /> Autosaving…</span>}
-          {saveStatus === "saved" && <span className="flex items-center gap-1.5 text-xs font-medium text-emerald-600"><CheckCircle2 className="h-3.5 w-3.5" /> Saved</span>}
+          <button
+            onClick={handleSave}
+            disabled={saveStatus === "saving" || JSON.stringify(form) === JSON.stringify(formRef.current)}
+            className="flex items-center gap-2 rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-rose-500 disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {saveStatus === "saving" ? <><Loader2 className="h-4 w-4 animate-spin" /> Saving…</> :
+             saveStatus === "saved" ? <><CheckCircle2 className="h-4 w-4" /> Saved</> :
+             "Save"}
+          </button>
         </div>
       </div>
 
