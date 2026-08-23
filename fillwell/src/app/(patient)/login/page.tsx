@@ -132,6 +132,20 @@ export default function LoginPage() {
               <>{view === "login" ? "Sign in" : view === "signup" ? "Create account" : "Send reset link"}<ArrowRight className="h-4 w-4" /></>
             )}
           </button>
+
+          {view === "login" && (
+            <button
+              type="button"
+              onClick={() => {
+                setEmail("admin@fillwell.com");
+                setPassword("fillwell123");
+                setErrors({});
+              }}
+              className="w-full text-center text-xs font-bold text-rose-600 hover:text-rose-700 bg-rose-50 border border-rose-100 rounded-lg py-2 transition"
+            >
+              ⚡ Fill Demo Credentials (admin@fillwell.com)
+            </button>
+          )}
         </form>
       </div>
     </div>
