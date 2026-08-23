@@ -39,7 +39,7 @@ export default function AuditPage() {
         </div>
         <div className="flex items-center gap-2">
           <div className="relative w-full sm:w-auto">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -transtone-y-1/2 text-stone-400" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400" />
             <input value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Filter logs…"
               className="w-full sm:w-64 rounded-lg border border-stone-200 bg-white py-2 pl-9 pr-3 text-sm outline-none transition focus:border-rose-400 focus:ring-2 focus:ring-rose-100" />
           </div>

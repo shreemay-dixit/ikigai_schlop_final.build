@@ -34,8 +34,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <div className="flex min-h-screen bg-stone-50">
       {/* ─── Sidebar ─── */}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-stone-900 transition-transform md:static md:transtone-x-0 ${
-          open ? "transtone-x-0" : "-transtone-x-full"
+        className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-stone-900 transition-transform md:static md:translate-x-0 ${
+          open ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         {/* Brand */}
@@ -103,7 +103,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
           <div className="flex items-center gap-3">
             <div className="relative hidden sm:block">
-              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -transtone-y-1/2 text-stone-400" />
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400" />
               <input
                 type="text"
                 placeholder="Search…"

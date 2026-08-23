@@ -83,7 +83,7 @@ export default function LoginPage() {
           <div>
             <label className="mb-1 block text-sm font-medium text-stone-700">Email</label>
             <div className="relative">
-              <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -transtone-y-1/2 text-stone-400" />
+              <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400" />
               <input
                 type="email"
                 value={email}
@@ -107,7 +107,7 @@ export default function LoginPage() {
                 )}
               </div>
               <div className="relative">
-                <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -transtone-y-1/2 text-stone-400" />
+                <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400" />
                 <input
                   type="password"
                   value={password}

@@ -44,7 +44,7 @@ export default function BookPage() {
       if (mode === "book" && selectedSlot) {
         const res = await fetch(`/api/appointments/${selectedSlot}`, {
           method: "PATCH", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status: "booked", patient_name: name, patient_phone: phone, cancellation_reason: null }),
+          body: JSON.stringify({ status: "confirmed", patient_name: name, patient_phone: phone, cancellation_reason: null }),
         });
         const json = await res.json();
         if (!res.ok || !json.success) throw new Error(json.error || "Already claimed.");

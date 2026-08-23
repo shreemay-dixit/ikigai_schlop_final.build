@@ -35,7 +35,7 @@ export default function RootPage() {
       {/* Hero Section */}
       <main className="relative pt-32 pb-24 overflow-hidden">
         {/* Abstract Background Orbs */}
-        <div className="absolute top-0 left-1/2 -transtone-x-1/2 w-full max-w-7xl h-full pointer-events-none -z-10">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-full pointer-events-none -z-10">
           <div className="absolute -top-32 left-0 w-[500px] h-[500px] rounded-full bg-rose-100/50 blur-[100px] opacity-70" />
           <div className="absolute top-64 right-0 w-[600px] h-[600px] rounded-full bg-amber-100/40 blur-[120px] opacity-70" />
         </div>

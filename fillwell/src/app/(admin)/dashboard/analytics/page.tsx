@@ -159,7 +159,7 @@ export default function AnalyticsDashboard() {
               const h2 = Math.floor(Math.random() * 40) + 10;
               return (
                 <div key={i} className="flex-1 flex flex-col justify-end gap-0.5 group relative">
-                  <div className="absolute -top-10 left-1/2 -transtone-x-1/2 bg-stone-900 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none whitespace-nowrap">
+                  <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-stone-900 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none whitespace-nowrap">
                     Hour {i}: {h1} Triaged
                   </div>
                   <div className="w-full bg-emerald-400 rounded-t-sm transition-all duration-700 ease-out hover:brightness-110" style={{ height: `${h2}%` }} />
