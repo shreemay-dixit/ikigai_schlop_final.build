@@ -4,12 +4,14 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   Calendar, Users, FileText, LayoutDashboard, HeartPulse,
-  Radio, RefreshCw, Zap, ShieldCheck, Search, Bell, ExternalLink
+  Radio, RefreshCw, Zap, ShieldCheck, Search, Bell, ExternalLink,
+  Settings
 } from "lucide-react";
 import { toast } from "sonner";
 import { SchedulePanel, AppointmentItem } from "@/components/dashboard/SchedulePanel";
 import { WaitlistPanel, WaitlistItem } from "@/components/dashboard/WaitlistPanel";
 import { AuditFeed, AuditItem } from "@/components/dashboard/AuditFeed";
+import { SettingsModal } from "@/components/dashboard/SettingsModal";
 
 export default function OperatorDashboard() {
   const [activeTab, setActiveTab] = useState<"overview" | "schedule" | "waitlist" | "audit">("overview");
@@ -18,6 +20,7 @@ export default function OperatorDashboard() {
   const [auditLogs, setAuditLogs] = useState<AuditItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastSync, setLastSync] = useState<string>("");
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const fetchData = async (silent = false) => {
     if (!silent) setLoading(true);
@@ -208,6 +211,15 @@ export default function OperatorDashboard() {
 
           <div className="flex items-center gap-3">
             <button
+              onClick={() => setIsSettingsOpen(true)}
+              className="flex items-center gap-1.5 rounded-xl border border-stone-200 bg-stone-50 px-3 py-1.5 text-xs font-bold text-stone-700 hover:bg-stone-100 transition shadow-sm"
+              title="System Settings, Date Override & Capacity Simulation"
+            >
+              <Settings className="h-3.5 w-3.5 text-rose-500" />
+              <span>Settings</span>
+            </button>
+
+            <button
               onClick={() => fetchData()}
               disabled={loading}
               className="flex items-center gap-1.5 rounded-xl border border-stone-200 bg-stone-50 px-3 py-1.5 text-xs font-bold text-stone-700 hover:bg-stone-100 transition disabled:opacity-50"
@@ -310,6 +322,12 @@ export default function OperatorDashboard() {
           )}
         </main>
       </div>
+
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        onSaved={() => fetchData(true)}
+      />
     </div>
   );
 }

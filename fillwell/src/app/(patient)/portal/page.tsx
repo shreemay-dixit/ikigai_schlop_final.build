@@ -7,10 +7,12 @@ import {
   ChevronRight, ShieldCheck, RotateCcw, Loader2,
   HeartPulse, Clock, Sparkles, AlertTriangle, Send,
   BrainCircuit, Code, FileJson, Database, Terminal,
-  ChevronDown, ChevronUp, Calendar, Info, HelpCircle
+  ChevronDown, ChevronUp, Calendar, Info, HelpCircle,
+  Settings
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase/client";
+import { SettingsModal } from "@/components/dashboard/SettingsModal";
 
 type PortalState = "onboarding" | "radar" | "race" | "secured" | "lost";
 
@@ -37,6 +39,7 @@ export default function DigitalBuzzerPortal() {
   const [suggestedSteps, setSuggestedSteps] = useState<string[]>([]);
   const [calendarContext, setCalendarContext] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   // Chat History
   const [chatInput, setChatInput] = useState("");
@@ -353,6 +356,15 @@ export default function DigitalBuzzerPortal() {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Settings button */}
+          <button
+            onClick={() => setIsSettingsOpen(true)}
+            className="flex items-center justify-center h-7 w-7 rounded-full border border-stone-200 bg-stone-50 text-stone-600 hover:text-rose-600 hover:bg-rose-50 transition shadow-sm"
+            title="Configure Date/Time Simulation & Capacity"
+          >
+            <Settings className="h-3.5 w-3.5" />
+          </button>
+
           {/* Behind the scenes toggle button */}
           <button
             onClick={() => setShowInspector(!showInspector)}
@@ -902,6 +914,11 @@ export default function DigitalBuzzerPortal() {
         <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />
         <span>HIPAA Compliant · Gemini AI Triage with Calendar Context · PostgreSQL Atomic Lock</span>
       </footer>
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        onSaved={() => {}}
+      />
     </div>
   );
 }
